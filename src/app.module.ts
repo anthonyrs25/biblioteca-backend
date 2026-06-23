@@ -3,8 +3,9 @@ import { LibrosModule } from './libros/libros.module'
 import { DocentesModule } from './docentes/docentes.module'
 import { PrestamosModule } from './prestamos/prestamos.module'
 import { RegistrosModule } from './registros/registros.module'
+import { RfidModule } from './rfid/rfid.module'
 
 @Module({
-  imports: [LibrosModule, DocentesModule, PrestamosModule, RegistrosModule],
+  imports: [LibrosModule, DocentesModule, PrestamosModule, RegistrosModule, RfidModule],
 })
 export class AppModule {}
