@@ -58,6 +58,21 @@ model Libro {
   totalEjemplares Int        @default(1)
   disponibles     Int        @default(1)
   descripcion     String
+
+  // ── Metadatos ricos del inventario institucional ──
+  tipo            String     @default("LIBRO") // "LIBRO" | "REVISTA"
+  isbn            String?
+  codigoDewey     String?
+  codigoCutter    String?
+  edicion         String?
+  paginas         Int?
+  editorial       String?
+  idioma          String?
+  soloEnSala      Boolean    @default(false)
+  programa        String?    // carrera de origen según el inventario (puede diferir de "categoria")
+  palabrasClave   String?
+  citaBibliografica String?
+
   prestamos       Prestamo[]
   createdAt       DateTime   @default(now())
 }
