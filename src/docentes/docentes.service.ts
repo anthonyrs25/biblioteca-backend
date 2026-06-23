@@ -80,4 +80,19 @@ export class DocentesService {
       },
     })
   }
+
+  // Actualizar datos de un docente (ej: cambiar el RFID si se le da un llavero nuevo)
+  update(id: number, data: Partial<{ rfid: string; nombre: string; iniciales: string }>) {
+    return this.prisma.docente.update({
+      where: { id },
+      data,
+    })
+  }
+
+  // Eliminar un docente
+  remove(id: number) {
+    return this.prisma.docente.delete({
+      where: { id },
+    })
+  }
 }

@@ -83,6 +83,7 @@ model Registro {
   carrera   String?
   ciclo     Int?
   materia   String?
+  jornada   String?
   libroId   Int?
   fecha     DateTime @default(now())
 }
