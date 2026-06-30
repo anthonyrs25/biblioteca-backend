@@ -5,9 +5,9 @@ import { PrismaService } from '../prisma.service'
 export class DocentesService {
   constructor(private prisma: PrismaService) {}
 
-  // Obtener todos los docentes con sus carreras, ciclos y materias
+  // Obtener todos los usuarios (docentes/estudiantes/invitados) con sus carreras, ciclos y materias
   findAll() {
-    return this.prisma.docente.findMany({
+    return this.prisma.usuario.findMany({
       include: {
         carreras: {
           include: {
@@ -20,10 +20,9 @@ export class DocentesService {
     })
   }
 
-  // Buscar un docente por el UID de su tarjeta RFID
-  // Incluye también sus préstamos activos (para saber si puede devolver algo)
+  // Buscar un usuario por el UID de su tarjeta RFID
   findByRfid(rfid: string) {
-    return this.prisma.docente.findUnique({
+    return this.prisma.usuario.findUnique({
       where: { rfid },
       include: {
         carreras: {
@@ -41,58 +40,69 @@ export class DocentesService {
     })
   }
 
-  // Crear un docente nuevo con sus carreras/ciclos/materias
-  // connectOrCreate evita duplicar una carrera si ya existe (ej: "Desarrollo de Software")
+  // Crear un usuario nuevo (docente) con sus carreras/ciclos/materias
   create(data: {
-    rfid: string
+    rfid?: string
     nombre: string
-    iniciales: string
-    carreras: {
+    iniciales?: string
+    rol?: string
+    tipoPersona?: string
+    carreras?: {
       nombre: string
       ciclos: { numero: number; materias: string[] }[]
     }[]
   }) {
-    return this.prisma.docente.create({
+    return this.prisma.usuario.create({
       data: {
         rfid: data.rfid,
         nombre: data.nombre,
         iniciales: data.iniciales,
-        carreras: {
-          create: data.carreras.map(c => ({
-            carrera: {
-              connectOrCreate: {
-                where: { nombre: c.nombre },
-                create: {
-                  nombre: c.nombre,
-                  ciclos: {
-                    create: c.ciclos.map(ci => ({
-                      numero: ci.numero,
-                      materias: {
-                        create: ci.materias.map(m => ({ nombre: m })),
+        rol: data.rol || 'usuario',
+        tipoPersona: data.tipoPersona || 'DOCENTE',
+        carreras: data.carreras
+          ? {
+              create: data.carreras.map(c => ({
+                carrera: {
+                  connectOrCreate: {
+                    where: { nombre: c.nombre },
+                    create: {
+                      nombre: c.nombre,
+                      ciclos: {
+                        create: c.ciclos.map(ci => ({
+                          numero: ci.numero,
+                          materias: {
+                            create: ci.materias.map(m => ({ nombre: m })),
+                          },
+                        })),
                       },
-                    })),
+                    },
                   },
                 },
-              },
-            },
-          })),
-        },
+              })),
+            }
+          : undefined,
       },
     })
   }
 
-  // Actualizar datos de un docente (ej: cambiar el RFID si se le da un llavero nuevo)
-  update(id: number, data: Partial<{ rfid: string; nombre: string; iniciales: string }>) {
-    return this.prisma.docente.update({
+  // Actualizar datos de un usuario (ej: cambiar el RFID si se le da un llavero nuevo)
+  update(id: number, data: Partial<{ rfid: string; nombre: string; iniciales: string; rol: string }>) {
+    return this.prisma.usuario.update({
       where: { id },
       data,
     })
   }
 
-  // Eliminar un docente
   remove(id: number) {
-    return this.prisma.docente.delete({
+    return this.prisma.usuario.delete({
       where: { id },
+    })
+  }
+
+  // Buscar por UID exacto, usado por el endpoint /rfid/escanear del ESP32
+  buscarPorUid(uid: string) {
+    return this.prisma.usuario.findUnique({
+      where: { rfid: uid },
     })
   }
 }

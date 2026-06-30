@@ -5,15 +5,12 @@ import { PrismaService } from '../prisma.service'
 export class RfidService {
   constructor(private prisma: PrismaService) {}
 
-  // El script Python llama esto cada vez que el ESP32 detecta una tarjeta
   async registrarScan(uid: string) {
     return this.prisma.rfidScan.create({
       data: { uid, leido: false },
     })
   }
 
-  // El frontend pregunta esto repetidamente (polling)
-  // Si hay un scan pendiente, lo marca como leído y devuelve los datos del docente
   async obtenerPendiente() {
     const scan = await this.prisma.rfidScan.findFirst({
       where: { leido: false },
@@ -26,7 +23,7 @@ export class RfidService {
       data: { leido: true },
     })
 
-    const docente = await this.prisma.docente.findUnique({
+    const usuario = await this.prisma.usuario.findUnique({
       where: { rfid: scan.uid },
       include: {
         carreras: {
@@ -43,6 +40,41 @@ export class RfidService {
       },
     })
 
-    return { uid: scan.uid, docente }
+    return { uid: scan.uid, usuario }
+  }
+
+  // Endpoint real usado por el ESP32: POST /rfid/escanear
+  // Busca el usuario por UID; si no existe, queda registrado como pendiente de vincular
+  async escanear(uid: string, nombres: string, apellidos: string, rol: string) {
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { rfid: uid },
+      include: {
+        carreras: {
+          include: {
+            carrera: {
+              include: { ciclos: { include: { materias: true } } },
+            },
+          },
+        },
+        prestamos: {
+          where: { activo: true },
+          include: { libro: true },
+        },
+      },
+    })
+
+    if (usuario) {
+      return { autorizado: true, usuario }
+    }
+
+    await this.prisma.rfidScan.create({
+      data: { uid, leido: false },
+    })
+
+    return {
+      autorizado: false,
+      mensaje: 'Tarjeta no registrada. Pendiente de vinculación por el bibliotecario.',
+      datosLeidos: { nombres, apellidos, rol },
+    }
   }
 }

@@ -5,45 +5,40 @@ import { PrismaService } from '../prisma.service'
 export class RegistrosService {
   constructor(private prisma: PrismaService) {}
 
-  // Todos los registros, del más reciente al más antiguo
   findAll() {
     return this.prisma.registro.findMany({
       orderBy: { fecha: 'desc' },
-      include: { docente: true },
+      include: { usuario: true },
     })
   }
 
-  // Registros de un mes específico (ej: mayo 2026 -> anio=2026, mes=5)
   findByMes(anio: number, mes: number) {
     const inicio = new Date(anio, mes - 1, 1)
     const fin = new Date(anio, mes, 1)
     return this.prisma.registro.findMany({
       where: { fecha: { gte: inicio, lt: fin } },
       orderBy: { fecha: 'desc' },
-      include: { docente: true },
+      include: { usuario: true },
     })
   }
 
-  // Crear un registro nuevo
-  // tipo puede ser: 'uso' | 'prestamo' | 'devolucion'
   create(data: {
     tipo: string
-    docenteId: number
+    usuarioId: number
     actividad?: string
     detalle?: string
     carrera?: string
     ciclo?: number
     materia?: string
+    jornada?: string
     libroId?: number
   }) {
     return this.prisma.registro.create({ data })
   }
 
-  // Estadísticas del mes, listas para los reportes CACES del frontend
   async stats(anio: number, mes: number) {
     const registros = await this.findByMes(anio, mes)
 
-    // Agrupar visitas por carrera, para el ranking "quiénes usan más la biblioteca"
     const porCarreraMap: Record<string, number> = {}
     for (const r of registros) {
       if (r.carrera) {

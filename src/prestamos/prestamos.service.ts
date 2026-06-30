@@ -5,49 +5,50 @@ import { PrismaService } from '../prisma.service'
 export class PrestamosService {
   constructor(private prisma: PrismaService) {}
 
-  // Todos los préstamos que siguen activos (no devueltos)
   findActivos() {
     return this.prisma.prestamo.findMany({
       where: { activo: true },
-      include: { docente: true, libro: true },
+      include: { usuario: true, libro: true },
     })
   }
 
-  // Préstamos activos de un docente específico
-  findByDocente(docenteId: number) {
+  findByDocente(usuarioId: number) {
     return this.prisma.prestamo.findMany({
-      where: { docenteId, activo: true },
+      where: { usuarioId, activo: true },
       include: { libro: true },
     })
   }
 
-  // Crear un préstamo nuevo
-  // Esto hace 3 cosas a la vez, en una sola transacción:
-  // 1. Crea el registro de Prestamo
-  // 2. Resta 1 al stock de "disponibles" del libro
-  // 3. Suma 1 al contador "prestamosActivos" del docente
-  // Si cualquiera de las 3 falla, las otras se revierten automáticamente
-  async crear(docenteId: number, libroId: number) {
+  // Crear un préstamo nuevo. Si es para un invitado, se guardan sus datos puntuales
+  // (nombreInvitado, tipoDocumento, numeroDocumento) directamente en el préstamo.
+  async crear(
+    usuarioId: number,
+    libroId: number,
+    datosInvitado?: { nombreInvitado?: string; tipoDocumento?: string; numeroDocumento?: string },
+  ) {
     const [prestamo] = await this.prisma.$transaction([
       this.prisma.prestamo.create({
-        data: { docenteId, libroId },
+        data: {
+          usuarioId,
+          libroId,
+          nombreInvitado: datosInvitado?.nombreInvitado,
+          tipoDocumento: datosInvitado?.tipoDocumento,
+          numeroDocumento: datosInvitado?.numeroDocumento,
+        },
         include: { libro: true },
       }),
       this.prisma.libro.update({
         where: { id: libroId },
         data: { disponibles: { decrement: 1 } },
       }),
-      this.prisma.docente.update({
-        where: { id: docenteId },
+      this.prisma.usuario.update({
+        where: { id: usuarioId },
         data: { prestamosActivos: { increment: 1 } },
       }),
     ])
     return prestamo
   }
 
-  // Registrar la devolución de un préstamo
-  // Hace lo inverso: marca el préstamo como inactivo,
-  // devuelve 1 al stock del libro, y resta 1 al contador del docente
   async devolver(prestamoId: number) {
     const prestamo = await this.prisma.prestamo.findUnique({
       where: { id: prestamoId },
@@ -63,8 +64,8 @@ export class PrestamosService {
         where: { id: prestamo.libroId },
         data: { disponibles: { increment: 1 } },
       }),
-      this.prisma.docente.update({
-        where: { id: prestamo.docenteId },
+      this.prisma.usuario.update({
+        where: { id: prestamo.usuarioId },
         data: { prestamosActivos: { decrement: 1 } },
       }),
     ])
