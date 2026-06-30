@@ -6,13 +6,17 @@ datasource db {
   provider = "postgresql"
 }
 
-model Docente {
+model Usuario {
   id               Int              @id @default(autoincrement())
-  rfid             String           @unique
   nombre           String
-  iniciales        String
+  email            String?          @unique
+  password         String?
+  rfid             String?          @unique
+  rol              String           @default("usuario") // "usuario" | "bibliotecario" | "admin"
+  tipoPersona      String           @default("DOCENTE")  // "DOCENTE" | "ESTUDIANTE" | "INVITADO"
+  iniciales        String?
   prestamosActivos Int              @default(0)
-  carreras         DocenteCarrera[]
+  carreras         UsuarioCarrera[]
   registros        Registro[]
   prestamos        Prestamo[]
   createdAt        DateTime         @default(now())
@@ -21,14 +25,14 @@ model Docente {
 model Carrera {
   id       Int              @id @default(autoincrement())
   nombre   String           @unique
-  docentes DocenteCarrera[]
+  usuarios UsuarioCarrera[]
   ciclos   Ciclo[]
 }
 
-model DocenteCarrera {
+model UsuarioCarrera {
   id        Int     @id @default(autoincrement())
-  docente   Docente @relation(fields: [docenteId], references: [id])
-  docenteId Int
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+  usuarioId Int
   carrera   Carrera @relation(fields: [carreraId], references: [id])
   carreraId Int
 }
@@ -49,50 +53,50 @@ model Materia {
 }
 
 model Libro {
-  id              Int        @id @default(autoincrement())
-  codigo          String     @unique
-  titulo          String
-  autor           String
-  anio            Int
-  categoria       String
-  totalEjemplares Int        @default(1)
-  disponibles     Int        @default(1)
-  descripcion     String
-
-  // ── Metadatos ricos del inventario institucional ──
-  tipo            String     @default("LIBRO") // "LIBRO" | "REVISTA"
-  isbn            String?
-  codigoDewey     String?
-  codigoCutter    String?
-  edicion         String?
-  paginas         Int?
-  editorial       String?
-  idioma          String?
-  soloEnSala      Boolean    @default(false)
-  programa        String?    // carrera de origen según el inventario (puede diferir de "categoria")
-  palabrasClave   String?
+  id                Int        @id @default(autoincrement())
+  codigo            String     @unique
+  titulo            String
+  autor             String
+  anio              Int
+  categoria         String
+  totalEjemplares   Int        @default(1)
+  disponibles       Int        @default(1)
+  descripcion       String
+  tipo              String     @default("LIBRO")
+  isbn              String?
+  codigoDewey       String?
+  codigoCutter      String?
+  edicion           String?
+  paginas           Int?
+  editorial         String?
+  idioma            String?
+  soloEnSala        Boolean    @default(false)
+  programa          String?
+  palabrasClave     String?
   citaBibliografica String?
-
-  prestamos       Prestamo[]
-  createdAt       DateTime   @default(now())
+  prestamos         Prestamo[]
+  createdAt         DateTime   @default(now())
 }
 
 model Prestamo {
   id              Int       @id @default(autoincrement())
-  docente         Docente   @relation(fields: [docenteId], references: [id])
-  docenteId       Int
+  usuario         Usuario   @relation(fields: [usuarioId], references: [id])
+  usuarioId       Int
   libro           Libro     @relation(fields: [libroId], references: [id])
   libroId         Int
   fechaPrestamo   DateTime  @default(now())
   fechaDevolucion DateTime?
   activo          Boolean   @default(true)
+  nombreInvitado  String?
+  tipoDocumento   String?
+  numeroDocumento String?
 }
 
 model Registro {
   id        Int      @id @default(autoincrement())
   tipo      String
-  docente   Docente  @relation(fields: [docenteId], references: [id])
-  docenteId Int
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+  usuarioId Int
   actividad String?
   detalle   String?
   carrera   String?
