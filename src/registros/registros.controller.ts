@@ -1,25 +1,36 @@
-import { Controller, Get, Post, Param, Body } from '@nestjs/common'
+import { Controller, Get, Post, Param, Body, UseGuards } from '@nestjs/common'
+import { AuthGuard } from '@nestjs/passport'
 import { RegistrosService } from './registros.service'
+import { RolesGuard } from '../auth/roles.guard'
+import { Roles } from '../auth/roles.decorator'
 
 @Controller('registros')
 export class RegistrosController {
   constructor(private readonly service: RegistrosService) {}
 
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
   @Get()
   findAll() {
     return this.service.findAll()
   }
 
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
   @Get('mes/:anio/:mes')
   findByMes(@Param('anio') anio: string, @Param('mes') mes: string) {
     return this.service.findByMes(Number(anio), Number(mes))
   }
 
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
   @Get('stats/:anio/:mes')
   stats(@Param('anio') anio: string, @Param('mes') mes: string) {
     return this.service.stats(Number(anio), Number(mes))
   }
 
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
   @Post()
   create(@Body() body: any) {
     return this.service.create(body)

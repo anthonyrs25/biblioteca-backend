@@ -1,10 +1,14 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query } from '@nestjs/common'
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards } from '@nestjs/common'
+import { AuthGuard } from '@nestjs/passport'
 import { LibrosService } from './libros.service'
+import { RolesGuard } from '../auth/roles.guard'
+import { Roles } from '../auth/roles.decorator'
 
 @Controller('libros')
 export class LibrosController {
   constructor(private readonly service: LibrosService) {}
 
+  // ── PÚBLICOS (sin login) ──
   @Get()
   findAll() {
     return this.service.findAll()
@@ -30,16 +34,24 @@ export class LibrosController {
     return this.service.findByCodigo(codigo)
   }
 
+  // ── PROTEGIDOS: bibliotecario y admin ──
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
   @Post()
   create(@Body() body: any) {
     return this.service.create(body)
   }
 
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
   @Patch(':id')
   update(@Param('id') id: string, @Body() body: any) {
     return this.service.update(Number(id), body)
   }
 
+  // ── PROTEGIDO: solo admin ──
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.service.remove(Number(id))
