@@ -5,7 +5,6 @@ import { PrismaService } from '../prisma.service'
 export class DocentesService {
   constructor(private prisma: PrismaService) {}
 
-  // Obtener todos los usuarios (docentes/estudiantes/invitados) con sus carreras, ciclos y materias
   findAll() {
     return this.prisma.usuario.findMany({
       include: {
@@ -20,7 +19,6 @@ export class DocentesService {
     })
   }
 
-  // Buscar un usuario por el UID de su tarjeta RFID
   findByRfid(rfid: string) {
     return this.prisma.usuario.findUnique({
       where: { rfid },
@@ -40,7 +38,6 @@ export class DocentesService {
     })
   }
 
-  // Crear un usuario nuevo (docente) con sus carreras/ciclos/materias
   create(data: {
     rfid?: string
     nombre: string
@@ -85,7 +82,6 @@ export class DocentesService {
     })
   }
 
-  // Actualizar datos de un usuario (ej: cambiar el RFID si se le da un llavero nuevo)
   update(id: number, data: Partial<{ rfid: string; nombre: string; iniciales: string; rol: string }>) {
     return this.prisma.usuario.update({
       where: { id },
@@ -93,13 +89,11 @@ export class DocentesService {
     })
   }
 
-  remove(id: number) {
-    return this.prisma.usuario.delete({
-      where: { id },
-    })
+  async remove(id: number) {
+    await this.prisma.usuarioCarrera.deleteMany({ where: { usuarioId: id } })
+    return this.prisma.usuario.delete({ where: { id } })
   }
 
-  // Buscar por UID exacto, usado por el endpoint /rfid/escanear del ESP32
   buscarPorUid(uid: string) {
     return this.prisma.usuario.findUnique({
       where: { rfid: uid },
