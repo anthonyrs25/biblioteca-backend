@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma.service'
 
 @Injectable()
 export class RfidService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async registrarScan(uid: string) {
     return this.prisma.rfidScan.create({
@@ -64,6 +64,10 @@ export class RfidService {
     })
 
     if (usuario) {
+      // Crear registro pendiente para que el frontend lo detecte via polling
+      await this.prisma.rfidScan.create({
+        data: { uid, leido: false },
+      })
       return { autorizado: true, usuario }
     }
 
@@ -77,4 +81,5 @@ export class RfidService {
       datosLeidos: { nombres, apellidos, rol },
     }
   }
+
 }
