@@ -17,6 +17,13 @@ export class PrestamosController {
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'bibliotecario')
+  @Get('todos')
+  findTodos() {
+    return this.service.findTodos()
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
   @Get('docente/:id')
   findByDocente(@Param('id') id: string) {
     return this.service.findByDocente(Number(id))
@@ -25,8 +32,15 @@ export class PrestamosController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'bibliotecario')
   @Post()
-  crear(@Body() body: { docenteId: number; libroId: number }) {
-    return this.service.crear(body.docenteId, body.libroId)
+  crear(@Body() body: {
+    docenteId: number
+    libroId: number
+    fechaDevolucionEsperada?: string
+  }) {
+    const fecha = body.fechaDevolucionEsperada
+      ? new Date(body.fechaDevolucionEsperada)
+      : undefined
+    return this.service.crear(body.docenteId, body.libroId, fecha)
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)

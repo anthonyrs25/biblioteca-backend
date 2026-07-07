@@ -9,21 +9,29 @@ export class PrestamosService {
     return this.prisma.prestamo.findMany({
       where: { activo: true },
       include: { usuario: true, libro: true },
+      orderBy: { fechaPrestamo: 'desc' },
+    })
+  }
+
+  findTodos() {
+    return this.prisma.prestamo.findMany({
+      include: { usuario: true, libro: true },
+      orderBy: { fechaPrestamo: 'desc' },
     })
   }
 
   findByDocente(usuarioId: number) {
     return this.prisma.prestamo.findMany({
-      where: { usuarioId, activo: true },
+      where: { usuarioId },
       include: { libro: true },
+      orderBy: { fechaPrestamo: 'desc' },
     })
   }
 
-  // Crear un préstamo nuevo. Si es para un invitado, se guardan sus datos puntuales
-  // (nombreInvitado, tipoDocumento, numeroDocumento) directamente en el préstamo.
   async crear(
     usuarioId: number,
     libroId: number,
+    fechaDevolucionEsperada?: Date,
     datosInvitado?: { nombreInvitado?: string; tipoDocumento?: string; numeroDocumento?: string },
   ) {
     const [prestamo] = await this.prisma.$transaction([
@@ -31,6 +39,7 @@ export class PrestamosService {
         data: {
           usuarioId,
           libroId,
+          fechaDevolucionEsperada,
           nombreInvitado: datosInvitado?.nombreInvitado,
           tipoDocumento: datosInvitado?.tipoDocumento,
           numeroDocumento: datosInvitado?.numeroDocumento,
@@ -50,9 +59,7 @@ export class PrestamosService {
   }
 
   async devolver(prestamoId: number) {
-    const prestamo = await this.prisma.prestamo.findUnique({
-      where: { id: prestamoId },
-    })
+    const prestamo = await this.prisma.prestamo.findUnique({ where: { id: prestamoId } })
     if (!prestamo) throw new Error('Préstamo no encontrado')
 
     const [actualizado] = await this.prisma.$transaction([

@@ -79,17 +79,18 @@ model Libro {
 }
 
 model Prestamo {
-  id              Int       @id @default(autoincrement())
-  usuario         Usuario   @relation(fields: [usuarioId], references: [id])
-  usuarioId       Int
-  libro           Libro     @relation(fields: [libroId], references: [id])
-  libroId         Int
-  fechaPrestamo   DateTime  @default(now())
-  fechaDevolucion DateTime?
-  activo          Boolean   @default(true)
-  nombreInvitado  String?
-  tipoDocumento   String?
-  numeroDocumento String?
+  id                      Int       @id @default(autoincrement())
+  usuario                 Usuario   @relation(fields: [usuarioId], references: [id])
+  usuarioId               Int
+  libro                   Libro     @relation(fields: [libroId], references: [id])
+  libroId                 Int
+  fechaPrestamo           DateTime  @default(now())
+  fechaDevolucionEsperada DateTime?
+  fechaDevolucion         DateTime?
+  activo                  Boolean   @default(true)
+  nombreInvitado          String?
+  tipoDocumento           String?
+  numeroDocumento         String?
 }
 
 model Registro {
