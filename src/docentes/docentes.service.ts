@@ -82,11 +82,50 @@ export class DocentesService {
     })
   }
 
-  update(id: number, data: Partial<{ rfid: string; nombre: string; iniciales: string; rol: string }>) {
+  update(id: number, data: Partial<{
+    rfid: string
+    nombre: string
+    iniciales: string
+    rol: string
+  }>) {
     return this.prisma.usuario.update({
       where: { id },
       data,
     })
+  }
+
+  async actualizarCiclosYMaterias(
+    usuarioId: number,
+    ciclos: { numero: number; materias: string[] }[]
+  ) {
+    const uc = await this.prisma.usuarioCarrera.findFirst({ where: { usuarioId } })
+    if (!uc) return { ok: false, mensaje: 'Docente sin carrera asignada' }
+
+    const carreraId = uc.carreraId
+
+    for (const ciclo of ciclos) {
+      let cicloDb = await this.prisma.ciclo.findFirst({
+        where: { numero: ciclo.numero, carreraId },
+      })
+
+      if (!cicloDb) {
+        cicloDb = await this.prisma.ciclo.create({
+          data: { numero: ciclo.numero, carreraId },
+        })
+      }
+
+      await this.prisma.materia.deleteMany({ where: { cicloId: cicloDb.id } })
+
+      for (const nombre of ciclo.materias) {
+        if (nombre.trim()) {
+          await this.prisma.materia.create({
+            data: { nombre: nombre.trim(), cicloId: cicloDb.id },
+          })
+        }
+      }
+    }
+
+    return { ok: true }
   }
 
   async remove(id: number) {

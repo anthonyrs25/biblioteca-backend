@@ -1,5 +1,8 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body } from '@nestjs/common'
+import { Controller, Get, Post, Patch, Delete, Param, Body, ParseIntPipe, UseGuards } from '@nestjs/common'
+import { AuthGuard } from '@nestjs/passport'
 import { DocentesService } from './docentes.service'
+import { RolesGuard } from '../auth/roles.guard'
+import { Roles } from '../auth/roles.decorator'
 
 @Controller('docentes')
 export class DocentesController {
@@ -15,18 +18,34 @@ export class DocentesController {
     return this.service.findByRfid(uid)
   }
 
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
   @Post()
   create(@Body() body: any) {
     return this.service.create(body)
   }
 
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: any) {
-    return this.service.update(Number(id), body)
+  update(@Param('id', ParseIntPipe) id: number, @Body() body: any) {
+    return this.service.update(id, body)
   }
 
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
+  @Patch(':id/ciclos')
+  actualizarCiclos(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { ciclos: { numero: number; materias: string[] }[] }
+  ) {
+    return this.service.actualizarCiclosYMaterias(id, body.ciclos)
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.service.remove(Number(id))
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.service.remove(id)
   }
 }
