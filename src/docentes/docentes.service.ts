@@ -10,9 +10,8 @@ export class DocentesService {
       include: {
         carreras: {
           include: {
-            carrera: {
-              include: { ciclos: { include: { materias: true } } },
-            },
+            carrera: true,
+            ciclos: { include: { materias: true } },
           },
         },
       },
@@ -25,9 +24,8 @@ export class DocentesService {
       include: {
         carreras: {
           include: {
-            carrera: {
-              include: { ciclos: { include: { materias: true } } },
-            },
+            carrera: true,
+            ciclos: { include: { materias: true } },
           },
         },
         prestamos: {
@@ -38,7 +36,7 @@ export class DocentesService {
     })
   }
 
-  create(data: {
+  async create(data: {
     rfid?: string
     nombre: string
     iniciales?: string
@@ -49,37 +47,45 @@ export class DocentesService {
       ciclos: { numero: number; materias: string[] }[]
     }[]
   }) {
-    return this.prisma.usuario.create({
+    const usuario = await this.prisma.usuario.create({
       data: {
         rfid: data.rfid,
         nombre: data.nombre,
         iniciales: data.iniciales,
         rol: data.rol || 'usuario',
         tipoPersona: data.tipoPersona || 'DOCENTE',
-        carreras: data.carreras
-          ? {
-              create: data.carreras.map(c => ({
-                carrera: {
-                  connectOrCreate: {
-                    where: { nombre: c.nombre },
-                    create: {
-                      nombre: c.nombre,
-                      ciclos: {
-                        create: c.ciclos.map(ci => ({
-                          numero: ci.numero,
-                          materias: {
-                            create: ci.materias.map(m => ({ nombre: m })),
-                          },
-                        })),
-                      },
-                    },
-                  },
-                },
-              })),
-            }
-          : undefined,
       },
     })
+
+    if (data.carreras) {
+      for (const c of data.carreras) {
+        const carrera = await this.prisma.carrera.upsert({
+          where: { nombre: c.nombre },
+          update: {},
+          create: { nombre: c.nombre },
+        })
+
+        // Cada docente tiene su propia fila de UsuarioCarrera → sus propios
+        // ciclos → sus propias materias. Nunca comparte ciclos con otro
+        // docente de la misma carrera, aunque tengan el mismo número de ciclo.
+        await this.prisma.usuarioCarrera.create({
+          data: {
+            usuarioId: usuario.id,
+            carreraId: carrera.id,
+            ciclos: {
+              create: c.ciclos.map(ci => ({
+                numero: ci.numero,
+                materias: {
+                  create: ci.materias.map(m => ({ nombre: m })),
+                },
+              })),
+            },
+          },
+        })
+      }
+    }
+
+    return usuario
   }
 
   update(id: number, data: Partial<{
@@ -101,16 +107,16 @@ export class DocentesService {
     const uc = await this.prisma.usuarioCarrera.findFirst({ where: { usuarioId } })
     if (!uc) return { ok: false, mensaje: 'Docente sin carrera asignada' }
 
-    const carreraId = uc.carreraId
-
     for (const ciclo of ciclos) {
+      // Busca el ciclo dentro de ESTE docente-carrera específico, nunca en
+      // los de otro docente aunque compartan carrera y número de ciclo
       let cicloDb = await this.prisma.ciclo.findFirst({
-        where: { numero: ciclo.numero, carreraId },
+        where: { numero: ciclo.numero, usuarioCarreraId: uc.id },
       })
 
       if (!cicloDb) {
         cicloDb = await this.prisma.ciclo.create({
-          data: { numero: ciclo.numero, carreraId },
+          data: { numero: ciclo.numero, usuarioCarreraId: uc.id },
         })
       }
 
