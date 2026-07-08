@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body, UseGuards } from '@nestjs/common'
+import { Controller, Get, Post, Param, Body, Query, UseGuards } from '@nestjs/common'
 import { AuthGuard } from '@nestjs/passport'
 import { RegistrosService } from './registros.service'
 import { RolesGuard } from '../auth/roles.guard'
@@ -39,7 +39,7 @@ export class RegistrosController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'bibliotecario')
   @Get('ranking-usuarios')
-  rankingUsuarios() {
-    return this.service.rankingUsuarios()
+  rankingUsuarios(@Query('periodo') periodo?: string) {
+    return this.service.rankingUsuarios(periodo)
   }
 }

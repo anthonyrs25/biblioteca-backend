@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Body, UseGuards } from '@nestjs/common'
+import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards } from '@nestjs/common'
 import { AuthGuard } from '@nestjs/passport'
 import { PrestamosService } from './prestamos.service'
 import { RolesGuard } from '../auth/roles.guard'
@@ -53,14 +53,14 @@ export class PrestamosController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'bibliotecario')
   @Get('ranking-libros')
-  rankingLibros() {
-    return this.service.rankingLibros()
+  rankingLibros(@Query('periodo') periodo?: string) {
+    return this.service.rankingLibros(periodo)
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'bibliotecario')
   @Get('ranking-usuarios')
-  rankingUsuarios() {
-    return this.service.rankingUsuarios()
+  rankingUsuarios(@Query('periodo') periodo?: string) {
+    return this.service.rankingUsuarios(periodo)
   }
 }

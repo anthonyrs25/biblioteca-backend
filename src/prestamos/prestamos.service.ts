@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../prisma.service'
+import { calcularFechaDesde } from '../common/periodo.helper'
 
 @Injectable()
 export class PrestamosService {
@@ -80,10 +81,12 @@ export class PrestamosService {
   }
 
   // Ranking de libros por número de préstamos — incluye libros con 0 préstamos
-  async rankingLibros() {
+  async rankingLibros(periodo?: string) {
+    const desde = calcularFechaDesde(periodo)
     const conteos = await this.prisma.prestamo.groupBy({
       by: ['libroId'],
       _count: { _all: true },
+      where: desde ? { fechaPrestamo: { gte: desde } } : undefined,
     })
     const libros = await this.prisma.libro.findMany()
     const mapa = new Map(conteos.map(c => [c.libroId, c._count._all]))
@@ -93,10 +96,12 @@ export class PrestamosService {
   }
 
   // Ranking de usuarios por número de préstamos — incluye usuarios con 0 préstamos
-  async rankingUsuarios() {
+  async rankingUsuarios(periodo?: string) {
+    const desde = calcularFechaDesde(periodo)
     const conteos = await this.prisma.prestamo.groupBy({
       by: ['usuarioId'],
       _count: { _all: true },
+      where: desde ? { fechaPrestamo: { gte: desde } } : undefined,
     })
     const usuarios = await this.prisma.usuario.findMany({ where: { rol: 'usuario' } })
     const mapa = new Map(conteos.map(c => [c.usuarioId, c._count._all]))
