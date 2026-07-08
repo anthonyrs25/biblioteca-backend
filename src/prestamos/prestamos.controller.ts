@@ -49,4 +49,18 @@ export class PrestamosController {
   devolver(@Param('id') id: string) {
     return this.service.devolver(Number(id))
   }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
+  @Get('ranking-libros')
+  rankingLibros() {
+    return this.service.rankingLibros()
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
+  @Get('ranking-usuarios')
+  rankingUsuarios() {
+    return this.service.rankingUsuarios()
+  }
 }

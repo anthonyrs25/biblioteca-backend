@@ -114,3 +114,13 @@ model RfidScan {
   leido     Boolean  @default(false)
   createdAt DateTime @default(now())
 }
+
+model EventoPublico {
+  id       Int      @id @default(autoincrement())
+  tipo     String   // "visita_pagina" | "busqueda" | "clic_libro"
+  programa String?
+  texto    String?
+  libroId  Int?
+  fecha    DateTime @default(now())
+}
+

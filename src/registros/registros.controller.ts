@@ -35,4 +35,11 @@ export class RegistrosController {
   create(@Body() body: any) {
     return this.service.create(body)
   }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
+  @Get('ranking-usuarios')
+  rankingUsuarios() {
+    return this.service.rankingUsuarios()
+  }
 }

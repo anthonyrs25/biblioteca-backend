@@ -57,4 +57,18 @@ export class RegistrosService {
       porCarrera,
     }
   }
+
+  // Ranking de usuarios por número de visitas registradas — incluye a quienes tienen 0
+  // (por eso se parte de Usuario y no de Registro, para no perder los que nunca vinieron)
+  async rankingUsuarios() {
+    const conteos = await this.prisma.registro.groupBy({
+      by: ['usuarioId'],
+      _count: { _all: true },
+    })
+    const usuarios = await this.prisma.usuario.findMany({ where: { rol: 'usuario' } })
+    const mapa = new Map(conteos.map(c => [c.usuarioId, c._count._all]))
+    return usuarios
+      .map(u => ({ usuario: u, visitas: mapa.get(u.id) || 0 }))
+      .sort((a, b) => b.visitas - a.visitas)
+  }
 }

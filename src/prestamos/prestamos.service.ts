@@ -78,4 +78,30 @@ export class PrestamosService {
     ])
     return actualizado
   }
+
+  // Ranking de libros por número de préstamos — incluye libros con 0 préstamos
+  async rankingLibros() {
+    const conteos = await this.prisma.prestamo.groupBy({
+      by: ['libroId'],
+      _count: { _all: true },
+    })
+    const libros = await this.prisma.libro.findMany()
+    const mapa = new Map(conteos.map(c => [c.libroId, c._count._all]))
+    return libros
+      .map(l => ({ libro: l, prestamos: mapa.get(l.id) || 0 }))
+      .sort((a, b) => b.prestamos - a.prestamos)
+  }
+
+  // Ranking de usuarios por número de préstamos — incluye usuarios con 0 préstamos
+  async rankingUsuarios() {
+    const conteos = await this.prisma.prestamo.groupBy({
+      by: ['usuarioId'],
+      _count: { _all: true },
+    })
+    const usuarios = await this.prisma.usuario.findMany({ where: { rol: 'usuario' } })
+    const mapa = new Map(conteos.map(c => [c.usuarioId, c._count._all]))
+    return usuarios
+      .map(u => ({ usuario: u, prestamos: mapa.get(u.id) || 0 }))
+      .sort((a, b) => b.prestamos - a.prestamos)
+  }
 }
