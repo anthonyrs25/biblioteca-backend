@@ -28,8 +28,11 @@ export class RfidService {
       include: {
         carreras: {
           include: {
-            carrera: {
-              include: { ciclos: { include: { materias: true } } },
+            carrera: true,
+            ciclos: {
+              include: {
+                materias: true,
+              },
             },
           },
         },
@@ -51,8 +54,11 @@ export class RfidService {
       include: {
         carreras: {
           include: {
-            carrera: {
-              include: { ciclos: { include: { materias: true } } },
+            carrera: true,
+            ciclos: {
+              include: {
+                materias: true,
+              },
             },
           },
         },
@@ -62,7 +68,6 @@ export class RfidService {
         },
       },
     })
-
     if (usuario) {
       // Crear registro pendiente para que el frontend lo detecte via polling
       await this.prisma.rfidScan.create({
