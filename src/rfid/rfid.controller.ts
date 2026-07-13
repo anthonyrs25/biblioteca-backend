@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body } from '@nestjs/common'
+import { Controller, Get, Post, Body, Query } from '@nestjs/common'
 import { RfidService } from './rfid.service'
 
 @Controller('rfid')
@@ -15,6 +15,13 @@ export class RfidController {
   @Get('pendiente')
   obtenerPendiente() {
     return this.service.obtenerPendiente()
+  }
+
+  // Usado por el flujo "vincular llavero nuevo" en Gestión de Docentes.
+  // No consume el escaneo — solo mira si hubo uno nuevo desde la hora dada.
+  @Get('ultimo-escaneo')
+  ultimoEscaneoDesde(@Query('desde') desde: string) {
+    return this.service.ultimoEscaneoDesde(new Date(desde))
   }
 
   // El ESP32 hace POST aquí cada vez que detecta una tarjeta

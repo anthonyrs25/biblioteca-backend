@@ -102,10 +102,13 @@ export class DocentesService {
 
   async actualizarCiclosYMaterias(
     usuarioId: number,
+    carreraNombre: string,
     ciclos: { numero: number; materias: string[] }[]
   ) {
-    const uc = await this.prisma.usuarioCarrera.findFirst({ where: { usuarioId } })
-    if (!uc) return { ok: false, mensaje: 'Docente sin carrera asignada' }
+    const uc = await this.prisma.usuarioCarrera.findFirst({
+      where: { usuarioId, carrera: { nombre: carreraNombre } },
+    })
+    if (!uc) return { ok: false, mensaje: 'El docente no tiene esa carrera asignada' }
 
     for (const ciclo of ciclos) {
       // Busca el ciclo dentro de ESTE docente-carrera específico, nunca en
@@ -131,6 +134,37 @@ export class DocentesService {
       }
     }
 
+    return { ok: true }
+  }
+
+  // Agrega una carrera adicional a un docente que ya existe (para el caso de
+  // docentes que dictan en más de una carrera)
+  async agregarCarrera(usuarioId: number, nombreCarrera: string) {
+    const carrera = await this.prisma.carrera.upsert({
+      where: { nombre: nombreCarrera },
+      update: {},
+      create: { nombre: nombreCarrera },
+    })
+
+    const existente = await this.prisma.usuarioCarrera.findFirst({
+      where: { usuarioId, carreraId: carrera.id },
+    })
+    if (existente) return { ok: false, mensaje: 'El docente ya tiene esa carrera asignada' }
+
+    await this.prisma.usuarioCarrera.create({
+      data: { usuarioId, carreraId: carrera.id },
+    })
+    return { ok: true }
+  }
+
+  // Quita una carrera de un docente — elimina en cascada sus ciclos y materias
+  async quitarCarrera(usuarioId: number, carreraNombre: string) {
+    const uc = await this.prisma.usuarioCarrera.findFirst({
+      where: { usuarioId, carrera: { nombre: carreraNombre } },
+    })
+    if (!uc) return { ok: false, mensaje: 'El docente no tiene esa carrera asignada' }
+
+    await this.prisma.usuarioCarrera.delete({ where: { id: uc.id } })
     return { ok: true }
   }
 

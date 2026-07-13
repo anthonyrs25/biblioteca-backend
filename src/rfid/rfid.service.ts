@@ -46,6 +46,16 @@ export class RfidService {
     return { uid: scan.uid, usuario }
   }
 
+  // Para "vincular llavero nuevo": no consume el escaneo (no marca leido),
+  // solo mira si hubo alguno nuevo desde que se abrió el modal de vinculación.
+  // Así no compite con el polling normal de /rfid/pendiente.
+  async ultimoEscaneoDesde(desde: Date) {
+    return this.prisma.rfidScan.findFirst({
+      where: { createdAt: { gte: desde } },
+      orderBy: { createdAt: 'desc' },
+    })
+  }
+
   // Endpoint real usado por el ESP32: POST /rfid/escanear
   // Busca el usuario por UID; si no existe, queda registrado como pendiente de vincular
   async escanear(uid: string, nombres: string, apellidos: string, rol: string) {

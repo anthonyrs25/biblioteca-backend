@@ -37,9 +37,23 @@ export class DocentesController {
   @Patch(':id/ciclos')
   actualizarCiclos(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { ciclos: { numero: number; materias: string[] }[] }
+    @Body() body: { carrera: string; ciclos: { numero: number; materias: string[] }[] }
   ) {
-    return this.service.actualizarCiclosYMaterias(id, body.ciclos)
+    return this.service.actualizarCiclosYMaterias(id, body.carrera, body.ciclos)
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
+  @Post(':id/carreras')
+  agregarCarrera(@Param('id', ParseIntPipe) id: number, @Body() body: { carrera: string }) {
+    return this.service.agregarCarrera(id, body.carrera)
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
+  @Delete(':id/carreras/:carrera')
+  quitarCarrera(@Param('id', ParseIntPipe) id: number, @Param('carrera') carrera: string) {
+    return this.service.quitarCarrera(id, decodeURIComponent(carrera))
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)

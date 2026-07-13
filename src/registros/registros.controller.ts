@@ -31,6 +31,20 @@ export class RegistrosController {
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'bibliotecario')
+  @Get('stats-periodo')
+  statsPeriodo(@Query('periodo') periodo?: string) {
+    return this.service.statsPeriodo(periodo)
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
+  @Get('comparativa-anual')
+  comparativaAnual() {
+    return this.service.comparativaAnual()
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
   @Post()
   create(@Body() body: any) {
     return this.service.create(body)

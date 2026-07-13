@@ -59,6 +59,53 @@ export class RegistrosService {
     }
   }
 
+  // Igual que stats(anio,mes) pero con ventana de tiempo relativa (día/semana/mes/año/todo)
+  // en vez de un mes calendario fijo — para el selector de período del Resumen
+  async statsPeriodo(periodo?: string) {
+    const desde = calcularFechaDesde(periodo)
+    const registros = await this.prisma.registro.findMany({
+      where: desde ? { fecha: { gte: desde } } : undefined,
+      include: { usuario: true },
+    })
+
+    const porCarreraMap: Record<string, number> = {}
+    for (const r of registros) {
+      if (r.carrera) {
+        porCarreraMap[r.carrera] = (porCarreraMap[r.carrera] || 0) + 1
+      }
+    }
+    const porCarrera = Object.entries(porCarreraMap)
+      .map(([carrera, visitas]) => ({ carrera, visitas }))
+      .sort((a, b) => b.visitas - a.visitas)
+
+    return {
+      totalVisitas: registros.length,
+      usos: registros.filter(r => r.tipo === 'uso').length,
+      prestamos: registros.filter(r => r.tipo === 'prestamo').length,
+      devoluciones: registros.filter(r => r.tipo === 'devolucion').length,
+      porCarrera,
+    }
+  }
+
+  // Totales agrupados por año, para el gráfico comparativo entre años
+  async comparativaAnual() {
+    const registros = await this.prisma.registro.findMany({ select: { fecha: true, tipo: true } })
+    const porAnio: Record<number, { visitas: number; usos: number; prestamos: number; devoluciones: number }> = {}
+
+    for (const r of registros) {
+      const anio = r.fecha.getFullYear()
+      if (!porAnio[anio]) porAnio[anio] = { visitas: 0, usos: 0, prestamos: 0, devoluciones: 0 }
+      porAnio[anio].visitas++
+      if (r.tipo === 'uso') porAnio[anio].usos++
+      if (r.tipo === 'prestamo') porAnio[anio].prestamos++
+      if (r.tipo === 'devolucion') porAnio[anio].devoluciones++
+    }
+
+    return Object.entries(porAnio)
+      .map(([anio, datos]) => ({ anio: Number(anio), ...datos }))
+      .sort((a, b) => a.anio - b.anio)
+  }
+
   // Ranking de usuarios por número de visitas registradas — incluye a quienes tienen 0
   // (por eso se parte de Usuario y no de Registro, para no perder los que nunca vinieron)
   async rankingUsuarios(periodo?: string) {
