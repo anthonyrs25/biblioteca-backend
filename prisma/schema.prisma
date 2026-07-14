@@ -15,6 +15,9 @@ model Usuario {
   rol              String           @default("usuario") // "usuario" | "bibliotecario" | "admin"
   tipoPersona      String           @default("DOCENTE")  // "DOCENTE" | "ESTUDIANTE" | "INVITADO"
   iniciales        String?
+  tipoDocumento     String?         // solo para invitados/externos: "cedula" | "pasaporte"
+  numeroDocumento   String?         // para reconocer a un invitado que vuelve
+  activo            Boolean         @default(true) // soft-delete: false = "eliminado"
   prestamosActivos Int              @default(0)
   carreras         UsuarioCarrera[]
   registros        Registro[]
@@ -40,6 +43,7 @@ model UsuarioCarrera {
 model Ciclo {
   id               Int             @id @default(autoincrement())
   numero           Int
+  jornada          String?         // jornada habitual de este ciclo: "matutino" | "vespertino" | "nocturno" — opcional, para auto-relleno
   usuarioCarrera   UsuarioCarrera  @relation(fields: [usuarioCarreraId], references: [id], onDelete: Cascade)
   usuarioCarreraId Int
   materias         Materia[]
@@ -74,6 +78,7 @@ model Libro {
   programa          String?
   palabrasClave     String?
   citaBibliografica String?
+  activo            Boolean    @default(true) // soft-delete: false = "eliminado"
   prestamos         Prestamo[]
   createdAt         DateTime   @default(now())
 }
@@ -91,6 +96,7 @@ model Prestamo {
   nombreInvitado          String?
   tipoDocumento           String?
   numeroDocumento         String?
+  avisoEnviado            Boolean   @default(false) // evita mandar el correo de vencimiento más de una vez
 }
 
 model Registro {
@@ -124,3 +130,14 @@ model EventoPublico {
   fecha    DateTime @default(now())
 }
 
+// Registro inmutable de acciones administrativas sensibles — nadie puede
+// editarlo ni borrarlo desde la app, ni siquiera admin. Solo lectura.
+model Auditoria {
+  id          Int      @id @default(autoincrement())
+  usuarioId   Int      // quién hizo la acción (el admin)
+  accion      String   // "eliminar_libro" | "editar_docente" | "cambiar_rol" | etc.
+  entidad     String   // "Libro" | "Usuario" | etc.
+  entidadId   Int?
+  detalle     String?  // texto libre, ej. "cambió rol de bibliotecario a admin"
+  fecha       DateTime @default(now())
+}
