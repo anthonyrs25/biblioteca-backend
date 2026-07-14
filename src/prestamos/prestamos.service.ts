@@ -96,14 +96,16 @@ export class PrestamosService {
   }
 
   // Ranking de usuarios por número de préstamos — incluye usuarios con 0 préstamos
-  async rankingUsuarios(periodo?: string) {
+  async rankingUsuarios(periodo?: string, tipoPersona?: string) {
     const desde = calcularFechaDesde(periodo)
     const conteos = await this.prisma.prestamo.groupBy({
       by: ['usuarioId'],
       _count: { _all: true },
       where: desde ? { fechaPrestamo: { gte: desde } } : undefined,
     })
-    const usuarios = await this.prisma.usuario.findMany({ where: { rol: 'usuario' } })
+    const usuarios = await this.prisma.usuario.findMany({
+      where: { rol: 'usuario', ...(tipoPersona && { tipoPersona }) },
+    })
     const mapa = new Map(conteos.map(c => [c.usuarioId, c._count._all]))
     return usuarios
       .map(u => ({ usuario: u, prestamos: mapa.get(u.id) || 0 }))

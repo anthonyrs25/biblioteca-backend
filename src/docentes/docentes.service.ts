@@ -80,7 +80,7 @@ export class DocentesService {
     tipoPersona?: string
     carreras?: {
       nombre: string
-      ciclos: { numero: number; materias: string[] }[]
+      ciclos: { numero: number; materias: string[]; jornada?: string }[]
     }[]
   }) {
     const usuario = await this.prisma.usuario.create({
@@ -114,6 +114,7 @@ export class DocentesService {
             ciclos: {
               create: c.ciclos.map(ci => ({
                 numero: ci.numero,
+                jornada: ci.jornada,
                 materias: {
                   create: ci.materias.map(m => ({ nombre: m })),
                 },

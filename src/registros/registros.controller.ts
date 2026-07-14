@@ -32,8 +32,27 @@ export class RegistrosController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'bibliotecario')
   @Get('stats-periodo')
-  statsPeriodo(@Query('periodo') periodo?: string) {
-    return this.service.statsPeriodo(periodo)
+  statsPeriodo(
+    @Query('periodo') periodo?: string,
+    @Query('tipoPersona') tipoPersona?: string,
+    @Query('carrera') carrera?: string,
+    @Query('materia') materia?: string,
+  ) {
+    return this.service.statsPeriodo(periodo, tipoPersona, carrera, materia)
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
+  @Get('materias-disponibles')
+  materiasDisponibles() {
+    return this.service.materiasDisponibles()
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
+  @Get('comparativa-por-tipo')
+  comparativaPorTipo(@Query('periodo') periodo?: string) {
+    return this.service.comparativaPorTipo(periodo)
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -53,7 +72,7 @@ export class RegistrosController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'bibliotecario')
   @Get('ranking-usuarios')
-  rankingUsuarios(@Query('periodo') periodo?: string) {
-    return this.service.rankingUsuarios(periodo)
+  rankingUsuarios(@Query('periodo') periodo?: string, @Query('tipoPersona') tipoPersona?: string) {
+    return this.service.rankingUsuarios(periodo, tipoPersona)
   }
 }

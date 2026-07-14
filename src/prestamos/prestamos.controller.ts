@@ -60,7 +60,7 @@ export class PrestamosController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'bibliotecario')
   @Get('ranking-usuarios')
-  rankingUsuarios(@Query('periodo') periodo?: string) {
-    return this.service.rankingUsuarios(periodo)
+  rankingUsuarios(@Query('periodo') periodo?: string, @Query('tipoPersona') tipoPersona?: string) {
+    return this.service.rankingUsuarios(periodo, tipoPersona)
   }
 }

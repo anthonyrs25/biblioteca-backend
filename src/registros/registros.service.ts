@@ -60,11 +60,17 @@ export class RegistrosService {
   }
 
   // Igual que stats(anio,mes) pero con ventana de tiempo relativa (día/semana/mes/año/todo)
-  // en vez de un mes calendario fijo — para el selector de período del Resumen
-  async statsPeriodo(periodo?: string) {
+  // en vez de un mes calendario fijo — para el selector de período del Resumen.
+  // tipoPersona/carrera/materia opcionales para filtrar por segmento.
+  async statsPeriodo(periodo?: string, tipoPersona?: string, carrera?: string, materia?: string) {
     const desde = calcularFechaDesde(periodo)
     const registros = await this.prisma.registro.findMany({
-      where: desde ? { fecha: { gte: desde } } : undefined,
+      where: {
+        ...(desde && { fecha: { gte: desde } }),
+        ...(tipoPersona && { usuario: { tipoPersona } }),
+        ...(carrera && { carrera }),
+        ...(materia && { materia }),
+      },
       include: { usuario: true },
     })
 
@@ -85,6 +91,40 @@ export class RegistrosService {
       devoluciones: registros.filter(r => r.tipo === 'devolucion').length,
       porCarrera,
     }
+  }
+
+  // Lista de materias distintas registradas — para el filtro de Reportes
+  async materiasDisponibles() {
+    const resultado = await this.prisma.registro.findMany({
+      where: { materia: { not: null } },
+      select: { materia: true },
+      distinct: ['materia'],
+      orderBy: { materia: 'asc' },
+    })
+    return resultado.map(r => r.materia).filter(Boolean)
+  }
+
+  // Compara actividad entre Docentes, Estudiantes e Invitados en el período elegido
+  async comparativaPorTipo(periodo?: string) {
+    const desde = calcularFechaDesde(periodo)
+    const tipos = ['DOCENTE', 'ESTUDIANTE', 'INVITADO']
+
+    const resultados = await Promise.all(tipos.map(async tipoPersona => {
+      const registros = await this.prisma.registro.findMany({
+        where: {
+          ...(desde && { fecha: { gte: desde } }),
+          usuario: { tipoPersona },
+        },
+      })
+      return {
+        tipoPersona,
+        visitas: registros.length,
+        prestamos: registros.filter(r => r.tipo === 'prestamo').length,
+        devoluciones: registros.filter(r => r.tipo === 'devolucion').length,
+      }
+    }))
+
+    return resultados
   }
 
   // Totales agrupados por año, para el gráfico comparativo entre años
@@ -108,14 +148,16 @@ export class RegistrosService {
 
   // Ranking de usuarios por número de visitas registradas — incluye a quienes tienen 0
   // (por eso se parte de Usuario y no de Registro, para no perder los que nunca vinieron)
-  async rankingUsuarios(periodo?: string) {
+  async rankingUsuarios(periodo?: string, tipoPersona?: string) {
     const desde = calcularFechaDesde(periodo)
     const conteos = await this.prisma.registro.groupBy({
       by: ['usuarioId'],
       _count: { _all: true },
       where: desde ? { fecha: { gte: desde } } : undefined,
     })
-    const usuarios = await this.prisma.usuario.findMany({ where: { rol: 'usuario' } })
+    const usuarios = await this.prisma.usuario.findMany({
+      where: { rol: 'usuario', ...(tipoPersona && { tipoPersona }) },
+    })
     const mapa = new Map(conteos.map(c => [c.usuarioId, c._count._all]))
     return usuarios
       .map(u => ({ usuario: u, visitas: mapa.get(u.id) || 0 }))
