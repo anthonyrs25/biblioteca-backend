@@ -7,6 +7,7 @@ export class LibrosService {
 
   findAll() {
     return this.prisma.libro.findMany({
+      where: { activo: true },
       orderBy: { titulo: 'asc' },
     })
   }
@@ -43,45 +44,6 @@ export class LibrosService {
     return this.prisma.libro.create({ data })
   }
 
-  // Importación por lote: en vez de N peticiones (una por libro), procesa todo
-  // el archivo en una sola operación. Detecta duplicados por código antes de
-  // insertar, para no reintentar libros que el bibliotecario ya subió antes.
-  async crearLote(libros: {
-    codigo: string
-    titulo: string
-    autor: string
-    anio: number
-    categoria: string
-    totalEjemplares: number
-    disponibles: number
-    descripcion: string
-  }[]) {
-    const codigos = libros.map(l => l.codigo)
-    const existentes = await this.prisma.libro.findMany({
-      where: { codigo: { in: codigos } },
-      select: { codigo: true },
-    })
-    const existentesSet = new Set(existentes.map(e => e.codigo))
-    const nuevos = libros.filter(l => !existentesSet.has(l.codigo))
-
-    if (nuevos.length > 0) {
-      await this.prisma.libro.createMany({ data: nuevos, skipDuplicates: true })
-    }
-
-    return {
-      total: libros.length,
-      creados: nuevos.length,
-      duplicados: libros.length - nuevos.length,
-      codigosDuplicados: libros.filter(l => existentesSet.has(l.codigo)).map(l => l.codigo),
-    }
-  }
-
-  // Todos los libros en el mismo formato de columnas del Excel institucional,
-  // para exportar el catálogo completo desde el sistema
-  exportarTodos() {
-    return this.prisma.libro.findMany({ orderBy: { codigo: 'asc' } })
-  }
-
   update(id: number, data: Partial<{
     titulo: string
     autor: string
@@ -98,10 +60,78 @@ export class LibrosService {
     })
   }
 
+  // Soft-delete: nunca borramos de verdad — solo marcamos inactivo. Reversible.
   remove(id: number) {
-    return this.prisma.libro.delete({
+    return this.prisma.libro.update({
       where: { id },
+      data: { activo: false },
     })
+  }
+
+  // Papelera: libros eliminados, solo visible para admin
+  findEliminados() {
+    return this.prisma.libro.findMany({
+      where: { activo: false },
+      orderBy: { titulo: 'asc' },
+    })
+  }
+
+  restaurar(id: number) {
+    return this.prisma.libro.update({
+      where: { id },
+      data: { activo: true },
+    })
+  }
+
+  // Importación por lote: en vez de N peticiones (una por libro), procesa todo
+  // el archivo en una sola operación. Detecta duplicados por código antes de
+  // insertar, para no reintentar libros que el bibliotecario ya subió antes.
+  async crearLote(libros: {
+    codigo: string
+    titulo: string
+    autor: string
+    anio: number
+    categoria: string
+    totalEjemplares: number
+    disponibles: number
+    descripcion: string
+  }[]) {
+    const codigos = libros.map(l => l.codigo)
+    const existentes = await this.prisma.libro.findMany({
+      where: { codigo: { in: codigos } },
+      select: { codigo: true, activo: true },
+    })
+    const existentesActivos = new Set(existentes.filter(e => e.activo).map(e => e.codigo))
+    const existentesInactivos = existentes.filter(e => !e.activo).map(e => e.codigo)
+
+    const nuevos = libros.filter(l => !existentesActivos.has(l.codigo) && !existentesInactivos.includes(l.codigo))
+
+    // Si el código coincide con un libro que estaba en la papelera, lo revive
+    // en vez de rechazarlo como duplicado — evita confusión al re-subir el Excel.
+    if (existentesInactivos.length > 0) {
+      await this.prisma.libro.updateMany({
+        where: { codigo: { in: existentesInactivos } },
+        data: { activo: true },
+      })
+    }
+
+    if (nuevos.length > 0) {
+      await this.prisma.libro.createMany({ data: nuevos, skipDuplicates: true })
+    }
+
+    return {
+      total: libros.length,
+      creados: nuevos.length,
+      reactivados: existentesInactivos.length,
+      duplicados: existentesActivos.size,
+      codigosDuplicados: [...existentesActivos],
+    }
+  }
+
+  // Todos los libros en el mismo formato de columnas del Excel institucional,
+  // para exportar el catálogo completo desde el sistema
+  exportarTodos() {
+    return this.prisma.libro.findMany({ where: { activo: true }, orderBy: { codigo: 'asc' } })
   }
 
   // Conteo de libros agrupados por programa/carrera (para las tarjetas de la landing)
@@ -109,7 +139,7 @@ export class LibrosService {
     const resultado = await this.prisma.libro.groupBy({
       by: ['programa'],
       _count: { _all: true },
-      where: { programa: { not: null } },
+      where: { programa: { not: null }, activo: true },
     })
     return resultado.map(r => ({
       programa: r.programa,
@@ -122,6 +152,7 @@ export class LibrosService {
     return this.prisma.libro.findMany({
       where: {
         AND: [
+          { activo: true },
           programa ? { programa } : {},
           texto
             ? {
@@ -142,7 +173,7 @@ export class LibrosService {
   // Lista de programas/carreras distintos que existen en el catálogo
   async listaProgramas() {
     const resultado = await this.prisma.libro.findMany({
-      where: { programa: { not: null } },
+      where: { programa: { not: null }, activo: true },
       select: { programa: true },
       distinct: ['programa'],
       orderBy: { programa: 'asc' },

@@ -67,6 +67,20 @@ export class LibrosController {
   // ── PROTEGIDO: solo admin ──
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
+  @Get('papelera')
+  findEliminados() {
+    return this.service.findEliminados()
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Patch(':id/restaurar')
+  restaurar(@Param('id') id: string) {
+    return this.service.restaurar(Number(id))
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.service.remove(Number(id))

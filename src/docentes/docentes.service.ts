@@ -7,6 +7,7 @@ export class DocentesService {
 
   findAll() {
     return this.prisma.usuario.findMany({
+      where: { activo: true },
       include: {
         carreras: {
           include: {
@@ -19,8 +20,8 @@ export class DocentesService {
   }
 
   findByRfid(rfid: string) {
-    return this.prisma.usuario.findUnique({
-      where: { rfid },
+    return this.prisma.usuario.findFirst({
+      where: { rfid, activo: true },
       include: {
         carreras: {
           include: {
@@ -180,9 +181,30 @@ export class DocentesService {
     return this.prisma.usuario.update({ where: { id }, data: { rol } })
   }
 
-  async remove(id: number) {
-    await this.prisma.usuarioCarrera.deleteMany({ where: { usuarioId: id } })
-    return this.prisma.usuario.delete({ where: { id } })
+  // Soft-delete: nunca borramos a una persona de verdad — solo la marcamos
+  // inactiva. Sus préstamos/registros históricos quedan intactos, y su
+  // llavero RFID deja de funcionar de inmediato (ver findByRfid).
+  remove(id: number) {
+    return this.prisma.usuario.update({
+      where: { id },
+      data: { activo: false },
+    })
+  }
+
+  findEliminados() {
+    return this.prisma.usuario.findMany({
+      where: { activo: false },
+      include: {
+        carreras: { include: { carrera: true } },
+      },
+    })
+  }
+
+  restaurar(id: number) {
+    return this.prisma.usuario.update({
+      where: { id },
+      data: { activo: true },
+    })
   }
 
   buscarPorUid(uid: string) {

@@ -23,8 +23,9 @@ export class RfidService {
       data: { leido: true },
     })
 
-    const usuario = await this.prisma.usuario.findUnique({
-      where: { rfid: scan.uid },
+
+    const usuario = await this.prisma.usuario.findFirst({
+      where: { rfid: scan.uid, activo: true },
       include: {
         carreras: {
           include: {
@@ -59,8 +60,8 @@ export class RfidService {
   // Endpoint real usado por el ESP32: POST /rfid/escanear
   // Busca el usuario por UID; si no existe, queda registrado como pendiente de vincular
   async escanear(uid: string, nombres: string, apellidos: string, rol: string) {
-    const usuario = await this.prisma.usuario.findUnique({
-      where: { rfid: uid },
+    const usuario = await this.prisma.usuario.findFirst({
+      where: { rfid: uid, activo: true },
       include: {
         carreras: {
           include: {

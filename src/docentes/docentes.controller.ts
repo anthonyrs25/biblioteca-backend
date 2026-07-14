@@ -71,6 +71,20 @@ export class DocentesController {
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
+  @Get('papelera')
+  findEliminados() {
+    return this.service.findEliminados()
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  @Patch(':id/restaurar')
+  restaurar(@Param('id', ParseIntPipe) id: number) {
+    return this.service.restaurar(id)
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.service.remove(id)
