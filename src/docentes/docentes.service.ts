@@ -37,9 +37,44 @@ export class DocentesService {
     })
   }
 
+  // Para estudiantes que ya se registraron antes — se reconocen por email
+  findByEmail(email: string) {
+    return this.prisma.usuario.findFirst({
+      where: { email, activo: true },
+      include: {
+        carreras: {
+          include: {
+            carrera: true,
+            ciclos: { include: { materias: true } },
+          },
+        },
+        prestamos: {
+          where: { activo: true },
+          include: { libro: true },
+        },
+      },
+    })
+  }
+
+  // Para invitados/externos que ya visitaron antes — se reconocen por su documento
+  findByDocumento(numeroDocumento: string) {
+    return this.prisma.usuario.findFirst({
+      where: { numeroDocumento, activo: true },
+      include: {
+        prestamos: {
+          where: { activo: true },
+          include: { libro: true },
+        },
+      },
+    })
+  }
+
   async create(data: {
     rfid?: string
     nombre: string
+    email?: string
+    tipoDocumento?: string
+    numeroDocumento?: string
     iniciales?: string
     rol?: string
     tipoPersona?: string
@@ -52,6 +87,9 @@ export class DocentesService {
       data: {
         rfid: data.rfid,
         nombre: data.nombre,
+        email: data.email,
+        tipoDocumento: data.tipoDocumento,
+        numeroDocumento: data.numeroDocumento,
         iniciales: data.iniciales,
         rol: data.rol || 'usuario',
         tipoPersona: data.tipoPersona || 'DOCENTE',

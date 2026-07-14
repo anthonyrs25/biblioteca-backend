@@ -18,6 +18,18 @@ export class DocentesController {
     return this.service.findByRfid(uid)
   }
 
+  // Para reconocer a un estudiante que ya se registró antes
+  @Get('email/:email')
+  findByEmail(@Param('email') email: string) {
+    return this.service.findByEmail(email)
+  }
+
+  // Para reconocer a un invitado/externo que ya visitó antes
+  @Get('documento/:numero')
+  findByDocumento(@Param('numero') numero: string) {
+    return this.service.findByDocumento(numero)
+  }
+
   // Registrar a alguien por PRIMERA VEZ es tarea del día a día — la necesita
   // el bibliotecario para no depender de un admin cada vez que llega gente nueva.
   @UseGuards(AuthGuard('jwt'), RolesGuard)
