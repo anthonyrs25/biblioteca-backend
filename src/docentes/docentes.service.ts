@@ -103,7 +103,7 @@ export class DocentesService {
   async actualizarCiclosYMaterias(
     usuarioId: number,
     carreraNombre: string,
-    ciclos: { numero: number; materias: string[] }[]
+    ciclos: { numero: number; materias: string[]; jornada?: string }[]
   ) {
     const uc = await this.prisma.usuarioCarrera.findFirst({
       where: { usuarioId, carrera: { nombre: carreraNombre } },
@@ -119,8 +119,10 @@ export class DocentesService {
 
       if (!cicloDb) {
         cicloDb = await this.prisma.ciclo.create({
-          data: { numero: ciclo.numero, usuarioCarreraId: uc.id },
+          data: { numero: ciclo.numero, usuarioCarreraId: uc.id, jornada: ciclo.jornada },
         })
+      } else if (ciclo.jornada) {
+        await this.prisma.ciclo.update({ where: { id: cicloDb.id }, data: { jornada: ciclo.jornada } })
       }
 
       await this.prisma.materia.deleteMany({ where: { cicloId: cicloDb.id } })
@@ -166,6 +168,16 @@ export class DocentesService {
 
     await this.prisma.usuarioCarrera.delete({ where: { id: uc.id } })
     return { ok: true }
+  }
+
+  // Solo admin puede llamar esto (aplicado en el guard del controller) —
+  // nadie puede auto-otorgarse más permisos de los que ya tiene.
+  cambiarRol(id: number, rol: string) {
+    const rolesValidos = ['usuario', 'bibliotecario', 'admin']
+    if (!rolesValidos.includes(rol)) {
+      return { ok: false, mensaje: 'Rol inválido' }
+    }
+    return this.prisma.usuario.update({ where: { id }, data: { rol } })
   }
 
   async remove(id: number) {

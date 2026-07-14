@@ -43,6 +43,45 @@ export class LibrosService {
     return this.prisma.libro.create({ data })
   }
 
+  // Importación por lote: en vez de N peticiones (una por libro), procesa todo
+  // el archivo en una sola operación. Detecta duplicados por código antes de
+  // insertar, para no reintentar libros que el bibliotecario ya subió antes.
+  async crearLote(libros: {
+    codigo: string
+    titulo: string
+    autor: string
+    anio: number
+    categoria: string
+    totalEjemplares: number
+    disponibles: number
+    descripcion: string
+  }[]) {
+    const codigos = libros.map(l => l.codigo)
+    const existentes = await this.prisma.libro.findMany({
+      where: { codigo: { in: codigos } },
+      select: { codigo: true },
+    })
+    const existentesSet = new Set(existentes.map(e => e.codigo))
+    const nuevos = libros.filter(l => !existentesSet.has(l.codigo))
+
+    if (nuevos.length > 0) {
+      await this.prisma.libro.createMany({ data: nuevos, skipDuplicates: true })
+    }
+
+    return {
+      total: libros.length,
+      creados: nuevos.length,
+      duplicados: libros.length - nuevos.length,
+      codigosDuplicados: libros.filter(l => existentesSet.has(l.codigo)).map(l => l.codigo),
+    }
+  }
+
+  // Todos los libros en el mismo formato de columnas del Excel institucional,
+  // para exportar el catálogo completo desde el sistema
+  exportarTodos() {
+    return this.prisma.libro.findMany({ orderBy: { codigo: 'asc' } })
+  }
+
   update(id: number, data: Partial<{
     titulo: string
     autor: string

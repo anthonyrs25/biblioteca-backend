@@ -44,6 +44,21 @@ export class LibrosController {
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'bibliotecario')
+  @Post('importar-lote')
+  crearLote(@Body() body: { libros: any[] }) {
+    return this.service.crearLote(body.libros)
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
+  @Get('exportar-todos')
+  exportarTodos() {
+    return this.service.exportarTodos()
+  }
+
+  // ── PROTEGIDO: solo admin (editar un libro ya existente es reconfiguración) ──
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
   @Patch(':id')
   update(@Param('id') id: string, @Body() body: any) {
     return this.service.update(Number(id), body)
