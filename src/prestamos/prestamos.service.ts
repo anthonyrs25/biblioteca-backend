@@ -104,7 +104,8 @@ export class PrestamosService {
       where: desde ? { fechaPrestamo: { gte: desde } } : undefined,
     })
     const usuarios = await this.prisma.usuario.findMany({
-      where: { rol: 'usuario', ...(tipoPersona && { tipoPersona }) },
+      where: { rol: 'usuario', activo: true, ...(tipoPersona && { tipoPersona }) },
+      omit: { password: true },
     })
     const mapa = new Map(conteos.map(c => [c.usuarioId, c._count._all]))
     return usuarios

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, ParseIntPipe, UseGuards } from '@nestjs/common'
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, ParseIntPipe, UseGuards } from '@nestjs/common'
 import { AuthGuard } from '@nestjs/passport'
 import { DocentesService } from './docentes.service'
 import { RolesGuard } from '../auth/roles.guard'
@@ -9,23 +9,34 @@ import { CrearDocenteDto, ActualizarDocenteDto, ActualizarCiclosDto, AgregarCarr
 export class DocentesController {
   constructor(private readonly service: DocentesService) {}
 
+  @UseGuards(AuthGuard('jwt'))
   @Get()
-  findAll() {
-    return this.service.findAll()
+  findAll(@Query('tipoPersona') tipoPersona?: string) {
+    return this.service.findAll(tipoPersona)
   }
 
+  // Lista de carreras reales — reemplaza el hardcodeo que vivía en el frontend
+  @UseGuards(AuthGuard('jwt'))
+  @Get('carreras')
+  listaCarreras() {
+    return this.service.listaCarreras()
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @Get('rfid/:uid')
   findByRfid(@Param('uid') uid: string) {
     return this.service.findByRfid(uid)
   }
 
   // Para reconocer a un estudiante que ya se registró antes
+  @UseGuards(AuthGuard('jwt'))
   @Get('email/:email')
   findByEmail(@Param('email') email: string) {
     return this.service.findByEmail(email)
   }
 
   // Para reconocer a un invitado/externo que ya visitó antes
+  @UseGuards(AuthGuard('jwt'))
   @Get('documento/:numero')
   findByDocumento(@Param('numero') numero: string) {
     return this.service.findByDocumento(numero)
@@ -85,8 +96,8 @@ export class DocentesController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Get('papelera')
-  findEliminados() {
-    return this.service.findEliminados()
+  findEliminados(@Query('tipoPersona') tipoPersona?: string) {
+    return this.service.findEliminados(tipoPersona)
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)

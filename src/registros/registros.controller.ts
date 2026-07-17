@@ -73,7 +73,12 @@ export class RegistrosController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'bibliotecario')
   @Get('ranking-usuarios')
-  rankingUsuarios(@Query('periodo') periodo?: string, @Query('tipoPersona') tipoPersona?: string) {
-    return this.service.rankingUsuarios(periodo, tipoPersona)
+  rankingUsuarios(
+    @Query('periodo') periodo?: string,
+    @Query('tipoPersona') tipoPersona?: string,
+    @Query('carrera') carrera?: string,
+    @Query('materia') materia?: string,
+  ) {
+    return this.service.rankingUsuarios(periodo, tipoPersona, carrera, materia)
   }
 }

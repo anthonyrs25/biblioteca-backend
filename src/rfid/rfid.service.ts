@@ -23,18 +23,14 @@ export class RfidService {
       data: { leido: true },
     })
 
-
     const usuario = await this.prisma.usuario.findFirst({
       where: { rfid: scan.uid, activo: true },
+      omit: { password: true },
       include: {
         carreras: {
           include: {
             carrera: true,
-            ciclos: {
-              include: {
-                materias: true,
-              },
-            },
+            ciclos: { include: { materias: true } },
           },
         },
         prestamos: {
@@ -47,9 +43,9 @@ export class RfidService {
     return { uid: scan.uid, usuario }
   }
 
-  // Para "vincular llavero nuevo": no consume el escaneo (no marca leido),
-  // solo mira si hubo alguno nuevo desde que se abrió el modal de vinculación.
-  // Así no compite con el polling normal de /rfid/pendiente.
+  // Para el flujo de "vincular llavero nuevo": no consume el escaneo (no marca leido),
+  // solo mira si hubo algún escaneo nuevo desde que se abrió el modal de vinculación.
+  // Así no compite con el polling normal que usa /rfid/pendiente.
   async ultimoEscaneoDesde(desde: Date) {
     return this.prisma.rfidScan.findFirst({
       where: { createdAt: { gte: desde } },
@@ -62,15 +58,12 @@ export class RfidService {
   async escanear(uid: string, nombres: string, apellidos: string, rol: string) {
     const usuario = await this.prisma.usuario.findFirst({
       where: { rfid: uid, activo: true },
+      omit: { password: true },
       include: {
         carreras: {
           include: {
             carrera: true,
-            ciclos: {
-              include: {
-                materias: true,
-              },
-            },
+            ciclos: { include: { materias: true } },
           },
         },
         prestamos: {
@@ -79,6 +72,7 @@ export class RfidService {
         },
       },
     })
+
     if (usuario) {
       // Crear registro pendiente para que el frontend lo detecte via polling
       await this.prisma.rfidScan.create({

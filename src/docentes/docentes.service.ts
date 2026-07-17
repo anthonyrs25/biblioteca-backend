@@ -1,13 +1,37 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../prisma.service'
 
+// NOTA: a pesar del nombre del módulo ("docentes"), este servicio administra
+// CUALQUIER tipo de persona del sistema — docentes, estudiantes, invitados y
+// cuentas de staff (bibliotecario/admin), diferenciadas por el campo
+// `tipoPersona`. El nombre se quedó así por razones históricas (el proyecto
+// empezó gestionando solo docentes) — se evaluó renombrarlo a "usuarios" o
+// "personas", pero se decidió no hacerlo por ahora dado el riesgo de tocar
+// imports en todo el proyecto para un cambio puramente cosmético.
+
+// Normaliza el nombre de una materia (recorta espacios, primera letra de cada
+// palabra en mayúscula) para que "programación", "Programación " y "PROGRAMACIÓN"
+// no queden como 3 filas distintas en la base de datos.
+function normalizarMateria(nombre: string): string {
+  return nombre
+    .trim()
+    .toLowerCase()
+    .split(' ')
+    .filter(Boolean)
+    .map(palabra => palabra.charAt(0).toUpperCase() + palabra.slice(1))
+    .join(' ')
+}
+
 @Injectable()
 export class DocentesService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
-  findAll() {
+  // tipoPersona opcional: filtra en el backend en vez de traer todo y
+  // descartar en el navegador — importante para cuando la lista crezca.
+  findAll(tipoPersona?: string) {
     return this.prisma.usuario.findMany({
-      where: { activo: true },
+      where: { activo: true, ...(tipoPersona && { tipoPersona }) },
+      omit: { password: true },
       include: {
         carreras: {
           include: {
@@ -19,9 +43,16 @@ export class DocentesService {
     })
   }
 
+  // Lista de carreras reales guardadas en la base de datos — reemplaza
+  // la lista fija que antes vivía duplicada en varios archivos del frontend.
+  listaCarreras() {
+    return this.prisma.carrera.findMany({ orderBy: { nombre: 'asc' } })
+  }
+
   findByRfid(rfid: string) {
     return this.prisma.usuario.findFirst({
       where: { rfid, activo: true },
+      omit: { password: true },
       include: {
         carreras: {
           include: {
@@ -41,6 +72,7 @@ export class DocentesService {
   findByEmail(email: string) {
     return this.prisma.usuario.findFirst({
       where: { email, activo: true },
+      omit: { password: true },
       include: {
         carreras: {
           include: {
@@ -60,6 +92,7 @@ export class DocentesService {
   findByDocumento(numeroDocumento: string) {
     return this.prisma.usuario.findFirst({
       where: { numeroDocumento, activo: true },
+      omit: { password: true },
       include: {
         prestamos: {
           where: { activo: true },
@@ -119,7 +152,7 @@ export class DocentesService {
                   numero: ci.numero,
                   jornada: ci.jornada,
                   materias: {
-                    create: ci.materias.map(m => ({ nombre: m })),
+                    create: ci.materias.map(m => ({ nombre: normalizarMateria(m) })),
                   },
                 })),
               },
@@ -176,7 +209,7 @@ export class DocentesService {
       for (const nombre of ciclo.materias) {
         if (nombre.trim()) {
           await this.prisma.materia.create({
-            data: { nombre: nombre.trim(), cicloId: cicloDb.id },
+            data: { nombre: normalizarMateria(nombre), cicloId: cicloDb.id },
           })
         }
       }
@@ -217,11 +250,19 @@ export class DocentesService {
   }
 
   // Solo admin puede llamar esto (aplicado en el guard del controller) —
-  // nadie puede auto-otorgarse más permisos de los que ya tiene.
-  cambiarRol(id: number, rol: string) {
+  // nadie puede auto-otorgarse más permisos de los que ya tiene. Además, un
+  // invitado (visitante externo sin afiliación al instituto) nunca puede
+  // recibir permisos de bibliotecario/admin — solo docentes o estudiantes.
+  async cambiarRol(id: number, rol: string) {
     const rolesValidos = ['usuario', 'bibliotecario', 'admin']
     if (!rolesValidos.includes(rol)) {
       return { ok: false, mensaje: 'Rol inválido' }
+    }
+    if (rol !== 'usuario') {
+      const persona = await this.prisma.usuario.findUnique({ where: { id } })
+      if (persona?.tipoPersona === 'INVITADO') {
+        return { ok: false, mensaje: 'Un invitado externo no puede recibir permisos de bibliotecario o administrador' }
+      }
     }
     return this.prisma.usuario.update({ where: { id }, data: { rol } })
   }
@@ -239,9 +280,10 @@ export class DocentesService {
     })
   }
 
-  findEliminados() {
+  findEliminados(tipoPersona?: string) {
     return this.prisma.usuario.findMany({
-      where: { activo: false },
+      where: { activo: false, ...(tipoPersona && { tipoPersona }) },
+      omit: { password: true },
       include: {
         carreras: { include: { carrera: true } },
       },

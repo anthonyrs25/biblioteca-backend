@@ -148,15 +148,20 @@ export class RegistrosService {
 
   // Ranking de usuarios por número de visitas registradas — incluye a quienes tienen 0
   // (por eso se parte de Usuario y no de Registro, para no perder los que nunca vinieron)
-  async rankingUsuarios(periodo?: string, tipoPersona?: string) {
+  async rankingUsuarios(periodo?: string, tipoPersona?: string, carrera?: string, materia?: string) {
     const desde = calcularFechaDesde(periodo)
     const conteos = await this.prisma.registro.groupBy({
       by: ['usuarioId'],
       _count: { _all: true },
-      where: desde ? { fecha: { gte: desde } } : undefined,
+      where: {
+        ...(desde && { fecha: { gte: desde } }),
+        ...(carrera && { carrera }),
+        ...(materia && { materia }),
+      },
     })
     const usuarios = await this.prisma.usuario.findMany({
-      where: { rol: 'usuario', ...(tipoPersona && { tipoPersona }) },
+      where: { rol: 'usuario', activo: true, ...(tipoPersona && { tipoPersona }) },
+      omit: { password: true },
     })
     const mapa = new Map(conteos.map(c => [c.usuarioId, c._count._all]))
     return usuarios
