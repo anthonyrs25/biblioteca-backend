@@ -63,6 +63,12 @@ export class ActualizarDocenteDto {
 
   @IsOptional() @IsString()
   rfid?: string
+
+  @IsOptional() @IsIn(['cedula', 'pasaporte'])
+  tipoDocumento?: string
+
+  @IsOptional() @IsString()
+  numeroDocumento?: string
 }
 
 export class ActualizarCiclosDto {

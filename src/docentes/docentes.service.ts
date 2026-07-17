@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma.service'
 
 @Injectable()
 export class DocentesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   findAll() {
     return this.prisma.usuario.findMany({
@@ -137,6 +137,8 @@ export class DocentesService {
     nombre: string
     iniciales: string
     rol: string
+    tipoDocumento: string
+    numeroDocumento: string
   }>) {
     return this.prisma.usuario.update({
       where: { id },
