@@ -13,7 +13,7 @@ model Usuario {
   password         String?
   rfid             String?          @unique
   rol              String           @default("usuario") // "usuario" | "bibliotecario" | "admin"
-  tipoPersona      String           @default("DOCENTE")  // "DOCENTE" | "ESTUDIANTE" | "INVITADO"
+  tipoPersona      String           @default("DOCENTE")  // "DOCENTE" | "ESTUDIANTE" | "INVITADO" | "STAFF"
   iniciales        String?
   tipoDocumento     String?         // solo para invitados/externos: "cedula" | "pasaporte"
   numeroDocumento   String?         // para reconocer a un invitado que vuelve
@@ -23,6 +23,9 @@ model Usuario {
   registros        Registro[]
   prestamos        Prestamo[]
   createdAt        DateTime         @default(now())
+
+  @@index([tipoPersona])
+  @@index([rol])
 }
 
 model Carrera {
@@ -81,6 +84,9 @@ model Libro {
   activo            Boolean    @default(true) // soft-delete: false = "eliminado"
   prestamos         Prestamo[]
   createdAt         DateTime   @default(now())
+
+  @@index([activo])
+  @@index([programa])
 }
 
 model Prestamo {
@@ -97,6 +103,9 @@ model Prestamo {
   tipoDocumento           String?
   numeroDocumento         String?
   avisoEnviado            Boolean   @default(false) // evita mandar el correo de vencimiento más de una vez
+
+  @@index([fechaPrestamo])
+  @@index([activo])
 }
 
 model Registro {
@@ -112,6 +121,10 @@ model Registro {
   jornada   String?
   libroId   Int?
   fecha     DateTime @default(now())
+
+  @@index([carrera])
+  @@index([materia])
+  @@index([fecha])
 }
 
 model RfidScan {

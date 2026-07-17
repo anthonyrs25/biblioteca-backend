@@ -3,6 +3,7 @@ import { AuthGuard } from '@nestjs/passport'
 import { RegistrosService } from './registros.service'
 import { RolesGuard } from '../auth/roles.guard'
 import { Roles } from '../auth/roles.decorator'
+import { CrearRegistroDto } from './dto/registro.dto'
 
 @Controller('registros')
 export class RegistrosController {
@@ -65,7 +66,7 @@ export class RegistrosController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'bibliotecario')
   @Post()
-  create(@Body() body: any) {
+  create(@Body() body: CrearRegistroDto) {
     return this.service.create(body)
   }
 

@@ -3,13 +3,14 @@ import { AuthService } from './auth.service'
 import { AuthGuard } from '@nestjs/passport'
 import { RolesGuard } from './roles.guard'
 import { Roles } from './roles.decorator'
+import { LoginDto, CrearCuentaStaffDto } from './dto/auth.dto'
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('login')
-  login(@Body() body: { email: string; password: string }) {
+  login(@Body() body: LoginDto) {
     return this.authService.login(body.email, body.password)
   }
 
@@ -25,7 +26,7 @@ export class AuthController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Post('crear-cuenta')
-  crearCuenta(@Body() body: { nombre: string; email: string; password: string; rol: string }) {
+  crearCuenta(@Body() body: CrearCuentaStaffDto) {
     return this.authService.crearCuentaStaff(body.nombre, body.email, body.password, body.rol)
   }
 }

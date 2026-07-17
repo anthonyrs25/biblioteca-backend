@@ -1,5 +1,7 @@
-import { Controller, Get, Post, Body, Query } from '@nestjs/common'
+import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common'
+import { AuthGuard } from '@nestjs/passport'
 import { RfidService } from './rfid.service'
+import { RegistrarScanDto, EscanearDto } from './dto/rfid.dto'
 
 @Controller('rfid')
 export class RfidController {
@@ -7,7 +9,7 @@ export class RfidController {
 
   // El script Python hace POST aquí (flujo anterior, se mantiene por compatibilidad)
   @Post('scan')
-  registrarScan(@Body() body: { uid: string }) {
+  registrarScan(@Body() body: RegistrarScanDto) {
     return this.service.registrarScan(body.uid)
   }
 
@@ -19,6 +21,7 @@ export class RfidController {
 
   // Usado por el flujo "vincular llavero nuevo" en Gestión de Docentes.
   // No consume el escaneo — solo mira si hubo uno nuevo desde la hora dada.
+  @UseGuards(AuthGuard('jwt'))
   @Get('ultimo-escaneo')
   ultimoEscaneoDesde(@Query('desde') desde: string) {
     return this.service.ultimoEscaneoDesde(new Date(desde))
@@ -26,7 +29,7 @@ export class RfidController {
 
   // El ESP32 hace POST aquí cada vez que detecta una tarjeta
   @Post('escanear')
-  escanear(@Body() body: { uid: string; nombres: string; apellidos: string; rol: string }) {
-    return this.service.escanear(body.uid, body.nombres, body.apellidos, body.rol)
+  escanear(@Body() body: EscanearDto) {
+    return this.service.escanear(body.uid, body.nombres ?? '', body.apellidos ?? '', body.rol ?? '')
   }
 }

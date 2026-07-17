@@ -3,6 +3,7 @@ import { AuthGuard } from '@nestjs/passport'
 import { DocentesService } from './docentes.service'
 import { RolesGuard } from '../auth/roles.guard'
 import { Roles } from '../auth/roles.decorator'
+import { CrearDocenteDto, ActualizarDocenteDto, ActualizarCiclosDto, AgregarCarreraDto, CambiarRolDto } from './dto/docente.dto'
 
 @Controller('docentes')
 export class DocentesController {
@@ -35,7 +36,7 @@ export class DocentesController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'bibliotecario')
   @Post()
-  create(@Body() body: any) {
+  create(@Body() body: CrearDocenteDto) {
     return this.service.create(body)
   }
 
@@ -44,7 +45,7 @@ export class DocentesController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() body: any) {
+  update(@Param('id', ParseIntPipe) id: number, @Body() body: ActualizarDocenteDto) {
     return this.service.update(id, body)
   }
 
@@ -53,7 +54,7 @@ export class DocentesController {
   @Patch(':id/ciclos')
   actualizarCiclos(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { carrera: string; ciclos: { numero: number; materias: string[]; jornada?: string }[] }
+    @Body() body: ActualizarCiclosDto
   ) {
     return this.service.actualizarCiclosYMaterias(id, body.carrera, body.ciclos)
   }
@@ -61,7 +62,7 @@ export class DocentesController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Post(':id/carreras')
-  agregarCarrera(@Param('id', ParseIntPipe) id: number, @Body() body: { carrera: string }) {
+  agregarCarrera(@Param('id', ParseIntPipe) id: number, @Body() body: AgregarCarreraDto) {
     return this.service.agregarCarrera(id, body.carrera)
   }
 
@@ -77,7 +78,7 @@ export class DocentesController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Patch(':id/rol')
-  cambiarRol(@Param('id', ParseIntPipe) id: number, @Body() body: { rol: string }) {
+  cambiarRol(@Param('id', ParseIntPipe) id: number, @Body() body: CambiarRolDto) {
     return this.service.cambiarRol(id, body.rol)
   }
 

@@ -83,49 +83,53 @@ export class DocentesService {
       ciclos: { numero: number; materias: string[]; jornada?: string }[]
     }[]
   }) {
-    const usuario = await this.prisma.usuario.create({
-      data: {
-        rfid: data.rfid,
-        nombre: data.nombre,
-        email: data.email,
-        tipoDocumento: data.tipoDocumento,
-        numeroDocumento: data.numeroDocumento,
-        iniciales: data.iniciales,
-        rol: data.rol || 'usuario',
-        tipoPersona: data.tipoPersona || 'DOCENTE',
-      },
-    })
+    // Todo o nada: si falla a mitad de camino (por ejemplo, en la segunda
+    // carrera), no queda un usuario a medio crear — se revierte completo.
+    return this.prisma.$transaction(async (tx) => {
+      const usuario = await tx.usuario.create({
+        data: {
+          rfid: data.rfid,
+          nombre: data.nombre,
+          email: data.email,
+          tipoDocumento: data.tipoDocumento,
+          numeroDocumento: data.numeroDocumento,
+          iniciales: data.iniciales,
+          rol: data.rol || 'usuario',
+          tipoPersona: data.tipoPersona || 'DOCENTE',
+        },
+      })
 
-    if (data.carreras) {
-      for (const c of data.carreras) {
-        const carrera = await this.prisma.carrera.upsert({
-          where: { nombre: c.nombre },
-          update: {},
-          create: { nombre: c.nombre },
-        })
+      if (data.carreras) {
+        for (const c of data.carreras) {
+          const carrera = await tx.carrera.upsert({
+            where: { nombre: c.nombre },
+            update: {},
+            create: { nombre: c.nombre },
+          })
 
-        // Cada docente tiene su propia fila de UsuarioCarrera → sus propios
-        // ciclos → sus propias materias. Nunca comparte ciclos con otro
-        // docente de la misma carrera, aunque tengan el mismo número de ciclo.
-        await this.prisma.usuarioCarrera.create({
-          data: {
-            usuarioId: usuario.id,
-            carreraId: carrera.id,
-            ciclos: {
-              create: c.ciclos.map(ci => ({
-                numero: ci.numero,
-                jornada: ci.jornada,
-                materias: {
-                  create: ci.materias.map(m => ({ nombre: m })),
-                },
-              })),
+          // Cada docente tiene su propia fila de UsuarioCarrera → sus propios
+          // ciclos → sus propias materias. Nunca comparte ciclos con otro
+          // docente de la misma carrera, aunque tengan el mismo número de ciclo.
+          await tx.usuarioCarrera.create({
+            data: {
+              usuarioId: usuario.id,
+              carreraId: carrera.id,
+              ciclos: {
+                create: c.ciclos.map(ci => ({
+                  numero: ci.numero,
+                  jornada: ci.jornada,
+                  materias: {
+                    create: ci.materias.map(m => ({ nombre: m })),
+                  },
+                })),
+              },
             },
-          },
-        })
+          })
+        }
       }
-    }
 
-    return usuario
+      return usuario
+    })
   }
 
   update(id: number, data: Partial<{
@@ -221,12 +225,15 @@ export class DocentesService {
   }
 
   // Soft-delete: nunca borramos a una persona de verdad — solo la marcamos
-  // inactiva. Sus préstamos/registros históricos quedan intactos, y su
-  // llavero RFID deja de funcionar de inmediato (ver findByRfid).
+  // inactiva. Sus préstamos/registros históricos quedan intactos. Su llavero
+  // RFID se libera (se pone en null) para que el mismo llavero físico se
+  // pueda reasignar a una persona nueva sin chocar con la restricción de
+  // unicidad — si algún día se restaura a esta persona, hay que volver a
+  // vincularle un llavero.
   remove(id: number) {
     return this.prisma.usuario.update({
       where: { id },
-      data: { activo: false },
+      data: { activo: false, rfid: null },
     })
   }
 
@@ -246,9 +253,4 @@ export class DocentesService {
     })
   }
 
-  buscarPorUid(uid: string) {
-    return this.prisma.usuario.findUnique({
-      where: { rfid: uid },
-    })
-  }
 }

@@ -3,6 +3,7 @@ import { AuthGuard } from '@nestjs/passport'
 import { LibrosService } from './libros.service'
 import { RolesGuard } from '../auth/roles.guard'
 import { Roles } from '../auth/roles.decorator'
+import { CrearLibroDto, ActualizarLibroDto, ImportarLoteDto } from './dto/libro.dto'
 
 @Controller('libros')
 export class LibrosController {
@@ -38,14 +39,14 @@ export class LibrosController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'bibliotecario')
   @Post()
-  create(@Body() body: any) {
+  create(@Body() body: CrearLibroDto) {
     return this.service.create(body)
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'bibliotecario')
   @Post('importar-lote')
-  crearLote(@Body() body: { libros: any[] }) {
+  crearLote(@Body() body: ImportarLoteDto) {
     return this.service.crearLote(body.libros)
   }
 
@@ -60,7 +61,7 @@ export class LibrosController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: any) {
+  update(@Param('id') id: string, @Body() body: ActualizarLibroDto) {
     return this.service.update(Number(id), body)
   }
 

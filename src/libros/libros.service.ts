@@ -13,8 +13,8 @@ export class LibrosService {
   }
 
   findByCodigo(codigo: string) {
-    return this.prisma.libro.findUnique({
-      where: { codigo },
+    return this.prisma.libro.findFirst({
+      where: { codigo, activo: true },
     })
   }
 
