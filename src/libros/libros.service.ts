@@ -149,11 +149,20 @@ export class LibrosService {
       await this.prisma.libro.createMany({ data: nuevos, skipDuplicates: true })
     }
 
-    for (const libro of paraActualizar) {
-      await this.prisma.libro.update({
-        where: { codigo: libro.codigo },
-        data: { ...metadata(libro), activo: true },
-      })
+    // Actualizar de a lotes en paralelo (no uno por uno) — con miles de libros
+    // existentes, actualizar secuencialmente podía agotar el tiempo de espera
+    // de la petición antes de terminar.
+    const TAMANO_LOTE = 25
+    for (let i = 0; i < paraActualizar.length; i += TAMANO_LOTE) {
+      const lote = paraActualizar.slice(i, i + TAMANO_LOTE)
+      await Promise.all(
+        lote.map(libro =>
+          this.prisma.libro.update({
+            where: { codigo: libro.codigo },
+            data: { ...metadata(libro), activo: true },
+          })
+        )
+      )
     }
 
     return {
@@ -183,13 +192,20 @@ export class LibrosService {
     }))
   }
 
-  // Búsqueda combinada: texto libre (código/título/autor) + filtro opcional de carrera
-  buscar(texto?: string, programa?: string) {
+  // Búsqueda combinada: texto libre (código/título/autor) + filtros opcionales
+  // de carrera y categoría + orden configurable. Sin límite artificial de
+  // resultados — antes se cortaba siempre a 50, aunque una carrera tuviera
+  // más libros que eso.
+  buscar(texto?: string, programa?: string, categoria?: string, orden?: string, direccion?: string) {
+    const campoOrden = orden === 'autor' ? 'autor' : orden === 'anio' ? 'anio' : 'titulo'
+    const direccionOrden = direccion === 'desc' ? 'desc' : 'asc'
+
     return this.prisma.libro.findMany({
       where: {
         AND: [
           { activo: true },
           programa ? { programa } : {},
+          categoria ? { categoria } : {},
           texto
             ? {
                 OR: [
@@ -201,9 +217,19 @@ export class LibrosService {
             : {},
         ],
       },
-      orderBy: { titulo: 'asc' },
-      take: 50,
+      orderBy: { [campoOrden]: direccionOrden },
     })
+  }
+
+  // Lista de categorías (área de conocimiento) distintas, para el filtro combinado
+  async listaCategorias() {
+    const resultado = await this.prisma.libro.findMany({
+      where: { activo: true },
+      select: { categoria: true },
+      distinct: ['categoria'],
+      orderBy: { categoria: 'asc' },
+    })
+    return resultado.map(r => r.categoria)
   }
 
   // Lista de programas/carreras distintos que existen en el catálogo

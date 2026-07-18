@@ -26,8 +26,19 @@ export class LibrosController {
   }
 
   @Get('buscar')
-  buscar(@Query('texto') texto?: string, @Query('programa') programa?: string) {
-    return this.service.buscar(texto, programa)
+  buscar(
+    @Query('texto') texto?: string,
+    @Query('programa') programa?: string,
+    @Query('categoria') categoria?: string,
+    @Query('orden') orden?: string,
+    @Query('direccion') direccion?: string,
+  ) {
+    return this.service.buscar(texto, programa, categoria, orden, direccion)
+  }
+
+  @Get('categorias')
+  listaCategorias() {
+    return this.service.listaCategorias()
   }
 
   @Get('codigo/:codigo')
