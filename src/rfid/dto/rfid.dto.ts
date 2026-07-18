@@ -2,12 +2,12 @@ import { IsOptional, IsString } from 'class-validator'
 
 export class RegistrarScanDto {
   @IsString()
-  uid: string
+  uid!: string
 }
 
 export class EscanearDto {
   @IsString()
-  uid: string
+  uid!: string
 
   @IsOptional() @IsString()
   nombres?: string

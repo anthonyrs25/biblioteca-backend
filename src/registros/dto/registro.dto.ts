@@ -2,10 +2,10 @@ import { IsIn, IsInt, IsOptional, IsString } from 'class-validator'
 
 export class CrearRegistroDto {
   @IsIn(['uso', 'prestamo', 'devolucion'])
-  tipo: string
+  tipo!: string
 
   @IsInt()
-  usuarioId: number
+  usuarioId!: number
 
   @IsOptional() @IsString()
   actividad?: string

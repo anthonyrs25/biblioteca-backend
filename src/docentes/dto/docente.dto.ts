@@ -3,10 +3,10 @@ import { IsArray, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min, Valid
 
 export class CicloDto {
   @IsInt() @Min(1) @Max(4)
-  numero: number
+  numero!: number
 
   @IsArray() @IsString({ each: true })
-  materias: string[]
+  materias!: string[]
 
   @IsOptional() @IsIn(['matutino', 'vespertino', 'nocturno'])
   jornada?: string
@@ -14,17 +14,17 @@ export class CicloDto {
 
 export class CarreraConCiclosDto {
   @IsString() @IsNotEmpty()
-  nombre: string
+  nombre!: string
 
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CicloDto)
-  ciclos: CicloDto[]
+  ciclos!: CicloDto[]
 }
 
 export class CrearDocenteDto {
   @IsString() @IsNotEmpty({ message: 'El nombre es obligatorio' })
-  nombre: string
+  nombre!: string
 
   @IsOptional() @IsString()
   iniciales?: string
@@ -73,20 +73,20 @@ export class ActualizarDocenteDto {
 
 export class ActualizarCiclosDto {
   @IsString() @IsNotEmpty()
-  carrera: string
+  carrera!: string
 
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CicloDto)
-  ciclos: CicloDto[]
+  ciclos!: CicloDto[]
 }
 
 export class AgregarCarreraDto {
   @IsString() @IsNotEmpty()
-  carrera: string
+  carrera!: string
 }
 
 export class CambiarRolDto {
   @IsIn(['usuario', 'bibliotecario', 'admin'])
-  rol: string
+  rol!: string
 }

@@ -3,28 +3,28 @@ import { IsArray, IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString, Min, Valid
 
 export class CrearLibroDto {
   @IsString() @IsNotEmpty()
-  codigo: string
+  codigo!: string
 
   @IsString() @IsNotEmpty()
-  titulo: string
+  titulo!: string
 
   @IsString() @IsNotEmpty()
-  autor: string
+  autor!: string
 
   @IsInt()
-  anio: number
+  anio!: number
 
   @IsString() @IsNotEmpty()
-  categoria: string
+  categoria!: string
 
   @IsInt() @Min(0)
-  totalEjemplares: number
+  totalEjemplares!: number
 
   @IsInt() @Min(0)
-  disponibles: number
+  disponibles!: number
 
   @IsString() @IsNotEmpty()
-  descripcion: string
+  descripcion!: string
 
   @IsOptional() @IsString()
   tipo?: string
@@ -93,5 +93,5 @@ export class ImportarLoteDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CrearLibroDto)
-  libros: CrearLibroDto[]
+  libros!: CrearLibroDto[]
 }
