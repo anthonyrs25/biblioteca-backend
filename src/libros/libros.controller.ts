@@ -7,7 +7,7 @@ import { CrearLibroDto, ActualizarLibroDto, ImportarLoteDto } from './dto/libro.
 
 @Controller('libros')
 export class LibrosController {
-  constructor(private readonly service: LibrosService) {}
+  constructor(private readonly service: LibrosService) { }
 
   // ── PÚBLICOS (sin login) ──
   @Get()
@@ -37,8 +37,8 @@ export class LibrosController {
   }
 
   @Get('categorias')
-  listaCategorias() {
-    return this.service.listaCategorias()
+  listaCategorias(@Query('programa') programa?: string) {
+    return this.service.listaCategorias(programa)
   }
 
   @Get('codigo/:codigo')

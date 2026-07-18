@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma.service'
 
 @Injectable()
 export class LibrosService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   findAll() {
     return this.prisma.libro.findMany({
@@ -208,12 +208,12 @@ export class LibrosService {
           categoria ? { categoria } : {},
           texto
             ? {
-                OR: [
-                  { codigo: { contains: texto, mode: 'insensitive' } },
-                  { titulo: { contains: texto, mode: 'insensitive' } },
-                  { autor: { contains: texto, mode: 'insensitive' } },
-                ],
-              }
+              OR: [
+                { codigo: { contains: texto, mode: 'insensitive' } },
+                { titulo: { contains: texto, mode: 'insensitive' } },
+                { autor: { contains: texto, mode: 'insensitive' } },
+              ],
+            }
             : {},
         ],
       },
@@ -221,10 +221,13 @@ export class LibrosService {
     })
   }
 
-  // Lista de categorías (área de conocimiento) distintas, para el filtro combinado
-  async listaCategorias() {
+  // Lista de categorías (área de conocimiento) distintas — si se pasa un
+  // programa, solo trae las categorías que de verdad tienen libros de esa
+  // carrera, en vez de mostrar siempre todas las categorías de la biblioteca
+  // completa (que confundía: elegías "Electricidad" y veías "Historia de América").
+  async listaCategorias(programa?: string) {
     const resultado = await this.prisma.libro.findMany({
-      where: { activo: true },
+      where: { activo: true, ...(programa && { programa }) },
       select: { categoria: true },
       distinct: ['categoria'],
       orderBy: { categoria: 'asc' },
