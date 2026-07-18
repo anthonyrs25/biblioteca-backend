@@ -1,13 +1,13 @@
 import { Controller, Get, Post, Patch, Delete, Param, Body, Query, ParseIntPipe, UseGuards } from '@nestjs/common'
 import { AuthGuard } from '@nestjs/passport'
-import { DocentesService } from './docentes.service'
+import { UsuariosService } from './usuarios.service'
 import { RolesGuard } from '../auth/roles.guard'
 import { Roles } from '../auth/roles.decorator'
-import { CrearDocenteDto, ActualizarDocenteDto, ActualizarCiclosDto, AgregarCarreraDto, CambiarRolDto } from './dto/docente.dto'
+import { CrearUsuarioDto, ActualizarUsuarioDto, ActualizarCiclosDto, AgregarCarreraDto, CambiarRolDto } from './dto/usuario.dto'
 
-@Controller('docentes')
-export class DocentesController {
-  constructor(private readonly service: DocentesService) {}
+@Controller('usuarios')
+export class UsuariosController {
+  constructor(private readonly service: UsuariosService) {}
 
   @UseGuards(AuthGuard('jwt'))
   @Get()
@@ -47,7 +47,7 @@ export class DocentesController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'bibliotecario')
   @Post()
-  create(@Body() body: CrearDocenteDto) {
+  create(@Body() body: CrearUsuarioDto) {
     return this.service.create(body)
   }
 
@@ -56,7 +56,7 @@ export class DocentesController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin')
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() body: ActualizarDocenteDto) {
+  update(@Param('id', ParseIntPipe) id: number, @Body() body: ActualizarUsuarioDto) {
     return this.service.update(id, body)
   }
 

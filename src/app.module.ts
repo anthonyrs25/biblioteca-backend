@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common'
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler'
 import { APP_GUARD } from '@nestjs/core'
 import { LibrosModule } from './libros/libros.module'
-import { DocentesModule } from './docentes/docentes.module'
+import { UsuariosModule } from './usuarios/usuarios.module'
 import { PrestamosModule } from './prestamos/prestamos.module'
 import { RegistrosModule } from './registros/registros.module'
 import { RfidModule } from './rfid/rfid.module'
@@ -15,7 +15,7 @@ import { EventosPublicosModule } from './eventos-publicos/eventos-publicos.modul
     // los endpoints públicos sin login (eventos-publicos, rfid/escanear)
     // de que alguien los sature a propósito o por error.
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
-    LibrosModule, DocentesModule, PrestamosModule, RegistrosModule, RfidModule, AuthModule, EventosPublicosModule,
+    LibrosModule, UsuariosModule, PrestamosModule, RegistrosModule, RfidModule, AuthModule, EventosPublicosModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

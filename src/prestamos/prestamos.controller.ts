@@ -25,9 +25,9 @@ export class PrestamosController {
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'bibliotecario')
-  @Get('docente/:id')
-  findByDocente(@Param('id') id: string) {
-    return this.service.findByDocente(Number(id))
+  @Get('usuario/:id')
+  findByUsuario(@Param('id') id: string) {
+    return this.service.findByUsuario(Number(id))
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -37,7 +37,7 @@ export class PrestamosController {
     const fecha = body.fechaDevolucionEsperada
       ? new Date(body.fechaDevolucionEsperada)
       : undefined
-    return this.service.crear(body.docenteId, body.libroId, fecha, {
+    return this.service.crear(body.usuarioId, body.libroId, fecha, {
       tipoDocumento: body.tipoDocumento,
       numeroDocumento: body.numeroDocumento,
     })

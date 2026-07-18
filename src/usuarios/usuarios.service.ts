@@ -1,14 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../prisma.service'
 
-// NOTA: a pesar del nombre del módulo ("docentes"), este servicio administra
-// CUALQUIER tipo de persona del sistema — docentes, estudiantes, invitados y
-// cuentas de staff (bibliotecario/admin), diferenciadas por el campo
-// `tipoPersona`. El nombre se quedó así por razones históricas (el proyecto
-// empezó gestionando solo docentes) — se evaluó renombrarlo a "usuarios" o
-// "personas", pero se decidió no hacerlo por ahora dado el riesgo de tocar
-// imports en todo el proyecto para un cambio puramente cosmético.
-
 // Normaliza el nombre de una materia (recorta espacios, primera letra de cada
 // palabra en mayúscula) para que "programación", "Programación " y "PROGRAMACIÓN"
 // no queden como 3 filas distintas en la base de datos.
@@ -23,7 +15,7 @@ function normalizarMateria(nombre: string): string {
 }
 
 @Injectable()
-export class DocentesService {
+export class UsuariosService {
   constructor(private prisma: PrismaService) {}
 
   // tipoPersona opcional: filtra en el backend en vez de traer todo y
@@ -200,7 +192,7 @@ export class DocentesService {
         cicloDb = await this.prisma.ciclo.create({
           data: { numero: ciclo.numero, usuarioCarreraId: uc.id, jornada: ciclo.jornada },
         })
-      } else if (ciclo.jornada) {
+      } else {
         await this.prisma.ciclo.update({ where: { id: cicloDb.id }, data: { jornada: ciclo.jornada } })
       }
 

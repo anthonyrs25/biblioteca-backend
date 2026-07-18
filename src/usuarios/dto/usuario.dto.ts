@@ -22,7 +22,7 @@ export class CarreraConCiclosDto {
   ciclos!: CicloDto[]
 }
 
-export class CrearDocenteDto {
+export class CrearUsuarioDto {
   @IsString() @IsNotEmpty({ message: 'El nombre es obligatorio' })
   nombre!: string
 
@@ -54,7 +54,7 @@ export class CrearDocenteDto {
   carreras?: CarreraConCiclosDto[]
 }
 
-export class ActualizarDocenteDto {
+export class ActualizarUsuarioDto {
   @IsOptional() @IsString()
   nombre?: string
 

@@ -21,7 +21,7 @@ export class PrestamosService {
     })
   }
 
-  findByDocente(usuarioId: number) {
+  findByUsuario(usuarioId: number) {
     return this.prisma.prestamo.findMany({
       where: { usuarioId },
       include: { libro: true },

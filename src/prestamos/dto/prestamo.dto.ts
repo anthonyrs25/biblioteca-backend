@@ -2,7 +2,7 @@ import { IsIn, IsInt, IsOptional, IsString } from 'class-validator'
 
 export class CrearPrestamoDto {
   @IsInt()
-  docenteId!: number
+  usuarioId!: number
 
   @IsInt()
   libroId!: number
