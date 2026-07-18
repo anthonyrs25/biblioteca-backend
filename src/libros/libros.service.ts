@@ -84,8 +84,14 @@ export class LibrosService {
   }
 
   // Importación por lote: en vez de N peticiones (una por libro), procesa todo
-  // el archivo en una sola operación. Detecta duplicados por código antes de
-  // insertar, para no reintentar libros que el bibliotecario ya subió antes.
+  // el archivo en una sola operación.
+  // - Códigos nuevos → se crean completos, con su stock inicial.
+  // - Códigos que YA EXISTEN (activos) → se actualiza su metadata (título,
+  //   autor, categoría, ISBN, etc.) pero NUNCA totalEjemplares/disponibles,
+  //   porque esos valores reflejan préstamos reales en curso — sobrescribirlos
+  //   en cada resubida del Excel borraría el estado real de la biblioteca.
+  // - Códigos que estaban en la papelera → se reactivan y se actualizan igual
+  //   que los existentes.
   async crearLote(libros: {
     codigo: string
     titulo: string
@@ -95,6 +101,18 @@ export class LibrosService {
     totalEjemplares: number
     disponibles: number
     descripcion: string
+    tipo?: string
+    isbn?: string
+    codigoDewey?: string
+    codigoCutter?: string
+    edicion?: string
+    paginas?: number
+    editorial?: string
+    idioma?: string
+    soloEnSala?: boolean
+    programa?: string
+    palabrasClave?: string
+    citaBibliografica?: string
   }[]) {
     const codigos = libros.map(l => l.codigo)
     const existentes = await this.prisma.libro.findMany({
@@ -102,29 +120,47 @@ export class LibrosService {
       select: { codigo: true, activo: true },
     })
     const existentesActivos = new Set(existentes.filter(e => e.activo).map(e => e.codigo))
-    const existentesInactivos = existentes.filter(e => !e.activo).map(e => e.codigo)
+    const existentesInactivos = new Set(existentes.filter(e => !e.activo).map(e => e.codigo))
 
-    const nuevos = libros.filter(l => !existentesActivos.has(l.codigo) && !existentesInactivos.includes(l.codigo))
+    const nuevos = libros.filter(l => !existentesActivos.has(l.codigo) && !existentesInactivos.has(l.codigo))
+    const paraActualizar = libros.filter(l => existentesActivos.has(l.codigo) || existentesInactivos.has(l.codigo))
 
-    // Si el código coincide con un libro que estaba en la papelera, lo revive
-    // en vez de rechazarlo como duplicado — evita confusión al re-subir el Excel.
-    if (existentesInactivos.length > 0) {
-      await this.prisma.libro.updateMany({
-        where: { codigo: { in: existentesInactivos } },
-        data: { activo: true },
-      })
-    }
+    const metadata = (l: typeof libros[number]) => ({
+      titulo: l.titulo,
+      autor: l.autor,
+      anio: l.anio,
+      categoria: l.categoria,
+      descripcion: l.descripcion,
+      tipo: l.tipo,
+      isbn: l.isbn,
+      codigoDewey: l.codigoDewey,
+      codigoCutter: l.codigoCutter,
+      edicion: l.edicion,
+      paginas: l.paginas,
+      editorial: l.editorial,
+      idioma: l.idioma,
+      soloEnSala: l.soloEnSala,
+      programa: l.programa,
+      palabrasClave: l.palabrasClave,
+      citaBibliografica: l.citaBibliografica,
+    })
 
     if (nuevos.length > 0) {
       await this.prisma.libro.createMany({ data: nuevos, skipDuplicates: true })
     }
 
+    for (const libro of paraActualizar) {
+      await this.prisma.libro.update({
+        where: { codigo: libro.codigo },
+        data: { ...metadata(libro), activo: true },
+      })
+    }
+
     return {
       total: libros.length,
       creados: nuevos.length,
-      reactivados: existentesInactivos.length,
-      duplicados: existentesActivos.size,
-      codigosDuplicados: [...existentesActivos],
+      actualizados: paraActualizar.length,
+      reactivados: [...existentesInactivos].filter(c => libros.some(l => l.codigo === c)).length,
     }
   }
 
