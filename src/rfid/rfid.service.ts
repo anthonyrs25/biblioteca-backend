@@ -1,9 +1,23 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, MessageEvent } from '@nestjs/common'
+import { Observable, Subject, interval, merge, map } from 'rxjs'
 import { PrismaService } from '../prisma.service'
 
 @Injectable()
 export class RfidService {
   constructor(private prisma: PrismaService) { }
+
+  // Canal en memoria por el que se "anuncian" los escaneos a los kioscos
+  // conectados por SSE. Es una transmisión: todos los que escuchan lo reciben.
+  private escaneos$ = new Subject<{ uid: string; usuario: any }>()
+
+  // Flujo SSE que consume el frontend. Se mezcla con un "ping" cada 25s
+  // para que el proxy de Railway no cierre la conexión por inactividad.
+  streamEscaneos(): Observable<MessageEvent> {
+    return merge(
+      this.escaneos$.pipe(map(evento => ({ data: evento }) as MessageEvent)),
+      interval(25000).pipe(map(() => ({ data: 'ping' }) as MessageEvent)),
+    )
+  }
 
   async registrarScan(uid: string) {
     return this.prisma.rfidScan.create({
@@ -45,7 +59,7 @@ export class RfidService {
 
   // Para el flujo de "vincular llavero nuevo": no consume el escaneo (no marca leido),
   // solo mira si hubo algún escaneo nuevo desde que se abrió el modal de vinculación.
-  // Así no compite con el polling normal que usa /rfid/pendiente.
+  // Así no compite con el canal normal de escaneos.
   async ultimoEscaneoDesde(desde: Date) {
     return this.prisma.rfidScan.findFirst({
       where: { createdAt: { gte: desde } },
@@ -54,7 +68,8 @@ export class RfidService {
   }
 
   // Endpoint real usado por el ESP32: POST /rfid/escanear
-  // Busca el usuario por UID; si no existe, queda registrado como pendiente de vincular
+  // Busca el usuario por UID; si no existe, queda registrado como pendiente de vincular.
+  // En ambos casos se anuncia por SSE al instante — ese es el "timbre".
   async escanear(uid: string, nombres: string, apellidos: string, rol: string) {
     const usuario = await this.prisma.usuario.findFirst({
       where: { rfid: uid, activo: true },
@@ -73,17 +88,18 @@ export class RfidService {
       },
     })
 
-    if (usuario) {
-      // Crear registro pendiente para que el frontend lo detecte via polling
-      await this.prisma.rfidScan.create({
-        data: { uid, leido: false },
-      })
-      return { autorizado: true, usuario }
-    }
-
+    // El registro en RfidScan se mantiene: lo usa el flujo de vinculación
+    // y sirve de respaldo por si algún cliente viejo sigue con polling.
     await this.prisma.rfidScan.create({
       data: { uid, leido: false },
     })
+
+    // Timbre: anunciar a los kioscos conectados, con o sin usuario encontrado
+    this.escaneos$.next({ uid, usuario })
+
+    if (usuario) {
+      return { autorizado: true, usuario }
+    }
 
     return {
       autorizado: false,

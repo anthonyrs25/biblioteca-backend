@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common'
+import { Controller, Get, Post, Body, Query, UseGuards, Sse, MessageEvent } from '@nestjs/common'
 import { AuthGuard } from '@nestjs/passport'
+import { Observable } from 'rxjs'
 import { RfidService } from './rfid.service'
 import { RegistrarScanDto, EscanearDto } from './dto/rfid.dto'
 
@@ -13,10 +14,19 @@ export class RfidController {
     return this.service.registrarScan(body.uid)
   }
 
-  // El frontend hace polling aquí
+  // Polling anterior — se mantiene por compatibilidad, pero el frontend nuevo
+  // ya no lo usa: ahora escucha el canal SSE de abajo.
   @Get('pendiente')
   obtenerPendiente() {
     return this.service.obtenerPendiente()
+  }
+
+  // Canal SSE: el kiosco abre esta conexión una vez y el backend le empuja
+  // cada escaneo al instante. Protegido con JWT igual que el resto.
+  @UseGuards(AuthGuard('jwt'))
+  @Sse('eventos')
+  eventos(): Observable<MessageEvent> {
+    return this.service.streamEscaneos()
   }
 
   // Usado por el flujo "vincular llavero nuevo" en Gestión de Docentes.
