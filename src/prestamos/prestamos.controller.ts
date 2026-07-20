@@ -23,6 +23,14 @@ export class PrestamosController {
     return this.service.findTodos()
   }
 
+  // Todos los préstamos en orden cronológico — para respaldo/exportación
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
+  @Get('exportar-todos')
+  exportarTodos() {
+    return this.service.exportarTodos()
+  }
+
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'bibliotecario')
   @Get('usuario/:id')

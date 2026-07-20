@@ -23,6 +23,22 @@ export class RegistrosService {
     })
   }
 
+  // Historial completo, en orden cronológico ascendente (como una bitácora
+  // en papel) y con los datos del usuario que hacen falta para exportar.
+  exportarTodos() {
+    return this.prisma.registro.findMany({
+      orderBy: { fecha: 'asc' },
+      include: {
+        usuario: {
+          select: {
+            id: true, nombre: true, email: true, tipoPersona: true,
+            iniciales: true, numeroDocumento: true, tipoDocumento: true,
+          },
+        },
+      },
+    })
+  }
+
   create(data: {
     tipo: string
     usuarioId: number

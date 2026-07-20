@@ -21,6 +21,23 @@ export class PrestamosService {
     })
   }
 
+  // Historial completo de préstamos en orden cronológico ascendente,
+  // con usuario y libro — para respaldo/exportación.
+  exportarTodos() {
+    return this.prisma.prestamo.findMany({
+      include: {
+        usuario: {
+          select: {
+            id: true, nombre: true, email: true, tipoPersona: true,
+            numeroDocumento: true, tipoDocumento: true,
+          },
+        },
+        libro: true,
+      },
+      orderBy: { fechaPrestamo: 'asc' },
+    })
+  }
+
   findByUsuario(usuarioId: number) {
     return this.prisma.prestamo.findMany({
       where: { usuarioId },

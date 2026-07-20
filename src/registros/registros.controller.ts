@@ -23,6 +23,14 @@ export class RegistrosController {
     return this.service.findByMes(Number(anio), Number(mes))
   }
 
+  // Todos los registros con el usuario completo — para respaldo/exportación
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
+  @Get('exportar-todos')
+  exportarTodos() {
+    return this.service.exportarTodos()
+  }
+
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'bibliotecario')
   @Get('stats/:anio/:mes')
