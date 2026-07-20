@@ -2,6 +2,11 @@ import { Injectable, MessageEvent } from '@nestjs/common'
 import { Observable, Subject, interval, merge, map } from 'rxjs'
 import { PrismaService } from '../prisma.service'
 
+// Tokens generales: no pertenecen a nadie, pero SÍ son válidos —
+// el frontend los usa para abrir el Registro Manual por tipo.
+// Deben coincidir con src/config/llaverosGenerales.ts del frontend.
+const UIDS_GENERALES = ['738F1492', 'B943AA14', 'UID_TARJETA_2']
+
 @Injectable()
 export class RfidService {
   constructor(private prisma: PrismaService) { }
@@ -99,6 +104,12 @@ export class RfidService {
 
     if (usuario) {
       return { autorizado: true, usuario }
+    }
+
+    // Un token general no tiene usuario, pero es una tarjeta válida del
+    // sistema: se responde autorizado para que el lector suene "aceptado".
+    if (UIDS_GENERALES.includes(uid)) {
+      return { autorizado: true, general: true }
     }
 
     return {
