@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma.service'
 // Tokens generales: no pertenecen a nadie, pero SÍ son válidos —
 // el frontend los usa para abrir el Registro Manual por tipo.
 // Deben coincidir con src/config/llaverosGenerales.ts del frontend.
-const UIDS_GENERALES = ['738F1492', 'B943AA14', 'UID_TARJETA_2']
+const UIDS_GENERALES = ['738F1492', 'B943AA14', 'C82F0059']
 
 @Injectable()
 export class RfidService {
