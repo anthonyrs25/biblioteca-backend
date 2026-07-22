@@ -154,3 +154,13 @@ model Auditoria {
   detalle     String?  // texto libre, ej. "cambió rol de bibliotecario a admin"
   fecha       DateTime @default(now())
 }
+
+model Actividad {
+  id     Int     @id @default(autoincrement())
+  nombre String  @unique
+  icono  String? // emoji opcional para el botón
+  orden  Int     @default(0)
+  activo Boolean @default(true) // soft-delete: false = "eliminada"
+
+  @@index([activo])
+}

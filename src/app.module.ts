@@ -8,6 +8,7 @@ import { RegistrosModule } from './registros/registros.module'
 import { RfidModule } from './rfid/rfid.module'
 import { AuthModule } from './auth/auth.module'
 import { EventosPublicosModule } from './eventos-publicos/eventos-publicos.module'
+import { ActividadesModule } from './actividades/actividades.module'
 
 @Module({
   imports: [
