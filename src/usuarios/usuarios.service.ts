@@ -16,7 +16,7 @@ function normalizarMateria(nombre: string): string {
 
 @Injectable()
 export class UsuariosService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   // tipoPersona opcional: filtra en el backend en vez de traer todo y
   // descartar en el navegador — importante para cuando la lista crezca.
@@ -144,7 +144,9 @@ export class UsuariosService {
                   numero: ci.numero,
                   jornada: ci.jornada,
                   materias: {
-                    create: ci.materias.map(m => ({ nombre: normalizarMateria(m) })),
+                    create: [...new Set(
+                      ci.materias.map(normalizarMateria).filter(Boolean)
+                    )].map(nombre => ({ nombre })),
                   },
                 })),
               },
@@ -179,33 +181,50 @@ export class UsuariosService {
     const uc = await this.prisma.usuarioCarrera.findFirst({
       where: { usuarioId, carrera: { nombre: carreraNombre } },
     })
-    if (!uc) return { ok: false, mensaje: 'El docente no tiene esa carrera asignada' }
+    if (!uc) return { ok: false, mensaje: 'El usuario no tiene esa carrera asignada' }
 
-    for (const ciclo of ciclos) {
-      // Busca el ciclo dentro de ESTE docente-carrera específico, nunca en
-      // los de otro docente aunque compartan carrera y número de ciclo
-      let cicloDb = await this.prisma.ciclo.findFirst({
-        where: { numero: ciclo.numero, usuarioCarreraId: uc.id },
+    // Todo o nada: si falla a mitad (por ejemplo, al insertar las materias
+    // del tercer ciclo), no queda una asignación académica incompleta.
+    await this.prisma.$transaction(async (tx) => {
+      // Los ciclos que ya no vienen en la asignación enviada se eliminan.
+      // Sin esto, quitar un ciclo desde la interfaz no lo borraba de la base
+      // y seguía apareciendo como si el usuario aún lo tuviera asignado.
+      const numerosEnviados = ciclos.map(c => c.numero)
+      await tx.ciclo.deleteMany({
+        where: { usuarioCarreraId: uc.id, numero: { notIn: numerosEnviados } },
       })
 
-      if (!cicloDb) {
-        cicloDb = await this.prisma.ciclo.create({
-          data: { numero: ciclo.numero, usuarioCarreraId: uc.id, jornada: ciclo.jornada },
+      for (const ciclo of ciclos) {
+        // Busca el ciclo dentro de ESTE usuario-carrera específico, nunca en
+        // los de otro usuario aunque compartan carrera y número de ciclo
+        let cicloDb = await tx.ciclo.findFirst({
+          where: { numero: ciclo.numero, usuarioCarreraId: uc.id },
         })
-      } else {
-        await this.prisma.ciclo.update({ where: { id: cicloDb.id }, data: { jornada: ciclo.jornada } })
-      }
 
-      await this.prisma.materia.deleteMany({ where: { cicloId: cicloDb.id } })
+        if (!cicloDb) {
+          cicloDb = await tx.ciclo.create({
+            data: { numero: ciclo.numero, usuarioCarreraId: uc.id, jornada: ciclo.jornada },
+          })
+        } else {
+          await tx.ciclo.update({
+            where: { id: cicloDb.id },
+            data: { jornada: ciclo.jornada },
+          })
+        }
 
-      for (const nombre of ciclo.materias) {
-        if (nombre.trim()) {
-          await this.prisma.materia.create({
-            data: { nombre: normalizarMateria(nombre), cicloId: cicloDb.id },
+        // Las materias se reemplazan por completo en cada guardado
+        await tx.materia.deleteMany({ where: { cicloId: cicloDb.id } })
+
+        const nombres = [...new Set(
+          ciclo.materias.map(normalizarMateria).filter(Boolean)
+        )]
+        if (nombres.length > 0) {
+          await tx.materia.createMany({
+            data: nombres.map(nombre => ({ nombre, cicloId: cicloDb!.id })),
           })
         }
       }
-    }
+    })
 
     return { ok: true }
   }
