@@ -23,18 +23,20 @@ async function bootstrap() {
     transform: true,             // convierte tipos automáticamente (ej. strings de query params a number)
   }))
 
-  // Restringido a los orígenes reales del proyecto — antes aceptaba
-  // cualquier sitio web (origin: true), lo cual es innecesariamente permisivo.
-  // Se acepta el dominio de producción, localhost (desarrollo), y cualquier
-  // preview deploy de Vercel de este mismo proyecto (dominios que terminan
-  // en ".vercel.app" y empiezan con "biblioteca-front").
+  // Lista explícita de orígenes permitidos. Antes se aceptaba cualquier
+  // dominio que CONTUVIERA "biblioteca-front" y terminara en .vercel.app,
+  // lo que permitiría que un dominio ajeno como "biblioteca-front-falso"
+  // pasara el filtro. Una lista cerrada elimina esa ambigüedad.
+  const origenesPermitidos = [
+    'http://localhost:5173',
+    'https://biblioteca-front-ashen.vercel.app',
+  ]
+
   app.enableCors({
     origin: (origin, callback) => {
-      if (
-        !origin ||
-        origin === 'http://localhost:5173' ||
-        (origin.includes('biblioteca-front') && origin.endsWith('.vercel.app'))
-      ) {
+      // Sin origin: peticiones del ESP32 y herramientas locales, que no
+      // envían cabecera Origin. No son navegadores, CORS no aplica.
+      if (!origin || origenesPermitidos.includes(origin)) {
         callback(null, true)
       } else {
         callback(new Error('Origen no permitido por CORS'))

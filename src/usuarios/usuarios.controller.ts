@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query, ParseIntPipe, UseGuards } from '@nestjs/common'
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, ParseIntPipe, UseGuards, Put } from '@nestjs/common'
 import { AuthGuard } from '@nestjs/passport'
 import { UsuariosService } from './usuarios.service'
 import { RolesGuard } from '../auth/roles.guard'
@@ -113,4 +113,20 @@ export class UsuariosController {
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.service.remove(id)
   }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
+  @Put(':id/asignacion')
+  reemplazarAsignacion(
+    @Param('id') id: string,
+    @Body() body: {
+      carreras: {
+        nombre: string
+        ciclos: { numero: number; jornada?: string; materias: string[] }[]
+      }[]
+    },
+  ) {
+    return this.service.reemplazarAsignacion(Number(id), body.carreras)
+  }
+
 }

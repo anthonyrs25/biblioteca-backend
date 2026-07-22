@@ -308,4 +308,64 @@ export class UsuariosService {
     })
   }
 
+  // Reemplaza TODA la asignación académica de un usuario en una sola
+  // operación atómica. Sustituye la secuencia agregarCarrera →
+  // quitarCarrera → actualizarCiclosYMaterias, que hacía N llamadas HTTP
+  // y podía dejar al usuario con una carrera sin ciclos si fallaba a mitad.
+  async reemplazarAsignacion(
+    usuarioId: number,
+    carreras: {
+      nombre: string
+      ciclos: { numero: number; jornada?: string; materias: string[] }[]
+    }[]
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const nombresEnviados = carreras.map(c => c.nombre)
+
+      // Las carreras que ya no vienen se eliminan; sus ciclos y materias
+      // caen en cascada por la relación definida en el schema.
+      await tx.usuarioCarrera.deleteMany({
+        where: {
+          usuarioId,
+          carrera: { nombre: { notIn: nombresEnviados } },
+        },
+      })
+
+      for (const c of carreras) {
+        const carrera = await tx.carrera.upsert({
+          where: { nombre: c.nombre },
+          update: {},
+          create: { nombre: c.nombre },
+        })
+
+        // Se borra la relación anterior y se recrea con sus ciclos: más
+        // simple y seguro que reconciliar ciclo por ciclo, y al estar
+        // dentro de la transacción no hay ventana de inconsistencia.
+        await tx.usuarioCarrera.deleteMany({
+          where: { usuarioId, carreraId: carrera.id },
+        })
+
+        await tx.usuarioCarrera.create({
+          data: {
+            usuarioId,
+            carreraId: carrera.id,
+            ciclos: {
+              create: c.ciclos.map(ci => ({
+                numero: ci.numero,
+                jornada: ci.jornada,
+                materias: {
+                  create: [...new Set(
+                    ci.materias.map(normalizarMateria).filter(Boolean)
+                  )].map(nombre => ({ nombre })),
+                },
+              })),
+            },
+          },
+        })
+      }
+
+      return { ok: true }
+    })
+  }
+
 }
