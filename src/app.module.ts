@@ -16,7 +16,14 @@ import { ActividadesModule } from './actividades/actividades.module'
     // los endpoints públicos sin login (eventos-publicos, rfid/escanear)
     // de que alguien los sature a propósito o por error.
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
-    LibrosModule, UsuariosModule, PrestamosModule, RegistrosModule, RfidModule, AuthModule, EventosPublicosModule,
+    LibrosModule,
+    UsuariosModule,
+    PrestamosModule,
+    RegistrosModule,
+    RfidModule,
+    AuthModule,
+    EventosPublicosModule,
+    ActividadesModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
