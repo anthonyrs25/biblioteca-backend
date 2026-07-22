@@ -184,4 +184,32 @@ export class RegistrosService {
       .map(u => ({ usuario: u, visitas: mapa.get(u.id) || 0 }))
       .sort((a, b) => b.visitas - a.visitas)
   }
+
+  // Devuelve { "Desarrollo de Software": ["Base de Datos", ...], ... }
+  // Se arma desde las materias ya asignadas a usuarios en cada carrera,
+  // para que las sugerencias no mezclen materias de carreras distintas.
+  async materiasPorCarrera() {
+    const relaciones = await this.prisma.usuarioCarrera.findMany({
+      include: {
+        carrera: true,
+        ciclos: { include: { materias: true } },
+      },
+    })
+
+    const mapa: Record<string, Set<string>> = {}
+    for (const rel of relaciones) {
+      const carrera = rel.carrera?.nombre
+      if (!carrera) continue
+      if (!mapa[carrera]) mapa[carrera] = new Set()
+      for (const ciclo of rel.ciclos) {
+        for (const materia of ciclo.materias) {
+          mapa[carrera].add(materia.nombre)
+        }
+      }
+    }
+
+    return Object.fromEntries(
+      Object.entries(mapa).map(([carrera, set]) => [carrera, [...set].sort()])
+    )
+  }
 }

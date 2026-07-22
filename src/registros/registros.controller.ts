@@ -78,6 +78,14 @@ export class RegistrosController {
     return this.service.create(body)
   }
 
+  // Materias agrupadas por carrera — alimenta las sugerencias filtradas
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
+  @Get('materias-por-carrera')
+  materiasPorCarrera() {
+    return this.service.materiasPorCarrera()
+  }
+
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'bibliotecario')
   @Get('ranking-usuarios')
