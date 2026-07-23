@@ -71,4 +71,12 @@ export class PrestamosController {
   rankingUsuarios(@Query('periodo') periodo?: string, @Query('tipoPersona') tipoPersona?: string) {
     return this.service.rankingUsuarios(periodo, tipoPersona)
   }
+
+  // Certificado de no adeudar libros — requisito para titulación
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
+  @Get('estado-usuario/:id')
+  estadoUsuario(@Param('id') id: string) {
+    return this.service.estadoUsuario(Number(id))
+  }
 }

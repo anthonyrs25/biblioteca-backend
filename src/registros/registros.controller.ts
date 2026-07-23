@@ -97,4 +97,12 @@ export class RegistrosController {
   ) {
     return this.service.rankingUsuarios(periodo, tipoPersona, carrera, materia)
   }
+
+  // Conteo de actividades más realizadas — para el gráfico del resumen
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'bibliotecario')
+  @Get('actividades-mas-realizadas')
+  actividadesMasRealizadas(@Query('periodo') periodo?: string) {
+    return this.service.actividadesMasRealizadas(periodo)
+  }
 }

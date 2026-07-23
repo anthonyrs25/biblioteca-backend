@@ -212,4 +212,21 @@ export class RegistrosService {
       Object.entries(mapa).map(([carrera, set]) => [carrera, [...set].sort()])
     )
   }
+
+  // Agrupa los registros de uso por actividad. Como ahora cada actividad
+  // genera su propio registro, basta con contar por ese campo.
+  async actividadesMasRealizadas(periodo?: string) {
+    const desde = calcularFechaDesde(periodo)
+    const resultado = await this.prisma.registro.groupBy({
+      by: ['actividad'],
+      _count: { _all: true },
+      where: {
+        tipo: 'uso',
+        actividad: { not: null },
+        ...(desde && { fecha: { gte: desde } }),
+      },
+      orderBy: { _count: { actividad: 'desc' } },
+    })
+    return resultado.map(r => ({ actividad: r.actividad, veces: r._count._all }))
+  }
 }

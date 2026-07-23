@@ -129,4 +129,35 @@ export class PrestamosService {
       .map(u => ({ usuario: u, prestamos: mapa.get(u.id) || 0 }))
       .sort((a, b) => b.prestamos - a.prestamos)
   }
+
+  // Devuelve el estado de deuda de un usuario y su historial completo.
+  // Sustenta el certificado de no adeudar libros que la institución
+  // solicita para los trámites de titulación.
+  async estadoUsuario(usuarioId: number) {
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      omit: { password: true },
+      include: {
+        carreras: { include: { carrera: true } },
+      },
+    })
+    if (!usuario) return { ok: false, mensaje: 'Usuario no encontrado' }
+
+    const prestamos = await this.prisma.prestamo.findMany({
+      where: { usuarioId },
+      include: { libro: true },
+      orderBy: { fechaPrestamo: 'asc' },
+    })
+
+    const pendientes = prestamos.filter(p => p.activo)
+
+    return {
+      ok: true,
+      usuario,
+      alDia: pendientes.length === 0,
+      pendientes,
+      historial: prestamos,
+      totalPrestamos: prestamos.length,
+    }
+  }
 }
